@@ -3,6 +3,10 @@
             [reagent.dom :as rdom])
   (:import [goog.date Date Interval]))
 
+(def canvas-width 2100)
+(def canvas-height 400)
+(def day-width (/ canvas-width 8))
+
 (def app (r/atom {:startdate (Date.)}))
 
 (defn date->last-monday [date]
@@ -21,9 +25,22 @@
 (defn root []
   (fn []
     (let [monday (date->last-monday (:startdate @app))]
-      (into [:div]
-            (for [i (range 0 7)]
-              [:h1 (.toString (inc-date monday i))])))) )
+      (into [:svg {:width canvas-width :height canvas-height}]
+            (map (fn [i]
+                   (let [top 0
+                         left (* i day-width)]
+                     [:<>
+                      [:rect {:width day-width
+                              :height canvas-height
+                              :stroke-width 2
+                              :stroke "black"
+                              :x left
+                              :y top
+                              :fill "white"}]
+                      [:text {:x (+ left 10)
+                              :y (+ top 20)}
+                       "Päivää"]]))
+                 (range 8))))) )
 
 (defn ^:export main! []
   (rdom/render
