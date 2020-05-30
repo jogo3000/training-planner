@@ -80,7 +80,6 @@
      :y (/ (- mouse-y ctm-f) ctm-d)}))
 
 (defn mousemove [evt]
-  ;; FIXME: hiiren offset pitää korjata. SVG:stä saa CMT objektin, jolla sovituksen voi tehdä
   (let [dragging? (get-in @app [:drag :dragging?])
         selected (get-in @app [:drag :element])]
     (when dragging?
