@@ -10,7 +10,7 @@
 
 (def app (r/atom {:startdate (Date.)
                   :drag {:dragging? false
-                         :element nil}
+                         :selected-element nil}
                   :exercises [{:id 1 :x 5 :y 50 :description "Pk 10 km"}
                               {:id 2 :x 5 :y 200 :description "Vr 10' + 2 x 10' / 2' + vr 10'"}]}))
 
@@ -58,15 +58,6 @@
                         title]]))
                   date-headers)))
 
-(defn start-drag [id]
-  (swap! app (fn [app]
-               (-> (assoc-in app [:drag :dragging?] true)
-                   (assoc-in [:drag :element] id)))))
-
-(defn stop-drag []
-  (swap! app (fn [app]
-               (assoc app :drag {:dragging? false :element nil}))))
-
 (defn mouse-position [evt]
   (let [ctm (.getScreenCTM (js/document.getElementById canvas-id))
         ctm-a (.-a ctm)
@@ -75,19 +66,36 @@
         ctm-f (.-f ctm)
         mouse-x (.-clientX evt)
         mouse-y (.-clientY evt)]
-    (js/console.log ctm-a ctm-e ctm-d ctm-f)
     {:x (/ (- mouse-x ctm-e) ctm-a)
      :y (/ (- mouse-y ctm-f) ctm-d)}))
 
+(defn start-drag [evt id x y]
+  (let [mouse-position (mouse-position evt)]
+    (swap! app (fn [app]
+                 (-> (assoc-in app [:drag :dragging?] true)
+                     (assoc-in [:drag :selected-element] id)
+                     (assoc-in [:drag :offset] {:x (- (:x mouse-position) x)
+                                                :y (- (:y mouse-position) y)}))))))
+
+(defn stop-drag []
+  (swap! app (fn [app]
+               (assoc app :drag {:dragging? false :selected-element nil}))))
+
+(defn correct-mouse-position [mouse offset]
+  {:x (- (:x mouse) (:x offset))
+   :y (- (:y mouse) (:y offset))})
+
 (defn mousemove [evt]
-  (let [dragging? (get-in @app [:drag :dragging?])
-        selected (get-in @app [:drag :element])]
+  (let [{:keys [dragging?
+                selected-element
+                offset]} (:drag @app)]
     (when dragging?
       (swap! app update :exercises
              (fn [exes]
-               (let [mouse-position (mouse-position evt)]
+               (let [mouse-position (-> (mouse-position evt)
+                                        (correct-mouse-position offset))]
                  (mapv (fn [{id :id :as ex}]
-                         (if-not (= id selected)
+                         (if-not (= id selected-element)
                            ex
                            (merge ex mouse-position)))
                        exes)))))))
@@ -96,7 +104,7 @@
   (let [text-offset-x (+ 5 x)
         text-offset-y (+ 25 y)]
     [:g {:id id
-         :on-mouse-down #(start-drag id)
+         :on-mouse-down #(start-drag % id x y)
          :on-mouse-up stop-drag}
      [:rect {:width 250
              :height 50
