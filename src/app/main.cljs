@@ -8,8 +8,10 @@
 (def day-width (/ canvas-width 8))
 
 (def app (r/atom {:startdate (Date.)
-                  :exercises [{:x 5 :y 50 :description "Pk 10 km"}
-                              {:x 5 :y 200 :description "Vr 10' + 2 x 10' / 2' + vr 10'"}]}))
+                  :drag {:dragging? false
+                         :element nil}
+                  :exercises [{:id 1 :x 5 :y 50 :description "Pk 10 km"}
+                              {:id 2 :x 5 :y 200 :description "Vr 10' + 2 x 10' / 2' + vr 10'"}]}))
 
 (defn date->last-monday [date]
   (let [day (.getDate date)
@@ -55,10 +57,37 @@
                         title]]))
                   date-headers)))
 
-(defn render-exercise [{:keys [x y description]}]
+(defn start-drag [id]
+  (swap! app (fn [app]
+               (-> (assoc-in app [:drag :dragging?] true)
+                   (assoc-in [:drag :element] id)))))
+
+(defn stop-drag []
+  (swap! app (fn [app]
+               (assoc app :drag {:dragging? false :element nil}))))
+
+(defn mousemove [evt]
+  (let [mouse-x (.-clientX evt)
+        mouse-y (.-clientY evt)
+        dragging? (get-in @app [:drag :dragging?])
+        selected (get-in @app [:drag :element])]
+    (when dragging?
+      (swap! app update :exercises
+             (fn [exes]
+               (mapv (fn [{id :id :as ex}]
+                       (if-not (= id selected)
+                         ex
+                         (assoc ex
+                                :x mouse-x
+                                :y mouse-y)))
+                     exes))))))
+
+(defn render-exercise [{:keys [id x y description]}]
   (let [text-offset-x (+ 5 x)
         text-offset-y (+ 25 y)]
-    [:<>
+    [:g {:id id
+         :on-mouse-down #(start-drag id)
+         :on-mouse-up stop-drag}
      [:rect {:width 250
              :height 50
              :x x :y y
@@ -74,9 +103,14 @@
     (let [monday (date->last-monday (:startdate @app))
           date-headers (-> (mapv #(pprint-date (inc-date monday %)) (range 7))
                            (conj "Yhteenveto"))]
-      (-> (into [:svg {:width canvas-width :height canvas-height}]
-                (week-grid monday))
-          (into (exercises (:exercises @app)))))) )
+      [:<>
+       (-> (into [:svg {:width canvas-width :height canvas-height
+                        :on-mouse-move mousemove
+                        :on-mouse-up stop-drag}]
+                 (week-grid monday))
+           (into (exercises (:exercises @app))))
+       [:p (str (get-in @app [:drag]))]
+       [:p (str (get-in @app [:exercises]))]])) )
 
 (defn ^:export ^:dev/after-load main! []
   (rdom/render
