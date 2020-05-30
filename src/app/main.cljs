@@ -3,6 +3,7 @@
             [reagent.dom :as rdom])
   (:import [goog.date Date Interval]))
 
+(def canvas-id "week-svg")
 (def canvas-width 2100)
 (def canvas-height 400)
 (def day-width (/ canvas-width 8))
@@ -66,21 +67,31 @@
   (swap! app (fn [app]
                (assoc app :drag {:dragging? false :element nil}))))
 
+(defn mouse-position [evt]
+  (let [ctm (.getScreenCTM (js/document.getElementById canvas-id))
+        ctm-a (.-a ctm)
+        ctm-e (.-e ctm)
+        ctm-d (.-d ctm)
+        ctm-f (.-f ctm)
+        mouse-x (.-clientX evt)
+        mouse-y (.-clientY evt)]
+    (js/console.log ctm-a ctm-e ctm-d ctm-f)
+    {:x (/ (- mouse-x ctm-e) ctm-a)
+     :y (/ (- mouse-y ctm-f) ctm-d)}))
+
 (defn mousemove [evt]
-  (let [mouse-x (.-clientX evt)
-        mouse-y (.-clientY evt)
-        dragging? (get-in @app [:drag :dragging?])
+  ;; FIXME: hiiren offset pitää korjata. SVG:stä saa CMT objektin, jolla sovituksen voi tehdä
+  (let [dragging? (get-in @app [:drag :dragging?])
         selected (get-in @app [:drag :element])]
     (when dragging?
       (swap! app update :exercises
              (fn [exes]
-               (mapv (fn [{id :id :as ex}]
-                       (if-not (= id selected)
-                         ex
-                         (assoc ex
-                                :x mouse-x
-                                :y mouse-y)))
-                     exes))))))
+               (let [mouse-position (mouse-position evt)]
+                 (mapv (fn [{id :id :as ex}]
+                         (if-not (= id selected)
+                           ex
+                           (merge ex mouse-position)))
+                       exes)))))))
 
 (defn render-exercise [{:keys [id x y description]}]
   (let [text-offset-x (+ 5 x)
@@ -104,7 +115,8 @@
           date-headers (-> (mapv #(pprint-date (inc-date monday %)) (range 7))
                            (conj "Yhteenveto"))]
       [:<>
-       (-> (into [:svg {:width canvas-width :height canvas-height
+       (-> (into [:svg {:id canvas-id
+                        :width canvas-width :height canvas-height
                         :on-mouse-move mousemove
                         :on-mouse-up stop-drag}]
                  (week-grid monday))
