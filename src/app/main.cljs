@@ -56,7 +56,7 @@
                                 title]]))
                           date-headers)))) )
 
-(defn ^:export main! []
+(defn ^:export ^:dev/after-load main! []
   (rdom/render
    [root]
    (js/document.getElementById "app")))
