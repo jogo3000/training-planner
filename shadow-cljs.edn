@@ -1,0 +1,7 @@
+{:source-paths ["src"]
+ :dependencies [[reagent "1.0.0-alpha2"]]
+ :dev-http {3000 "public/js"}
+ :builds {:app {:target :browser
+                :output-dir "public/js"
+                :asset-path "."
+                :modules {:main {:init-fn app.main/main!}}}}}
