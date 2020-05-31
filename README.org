@@ -11,7 +11,7 @@ helppo syöttää useita samanlaisia harjoituksia.
 - Lataa harjoitukset ical muodossa ja importtaa haluamaasi
   kalenteriin. Tässä vaiheessa voit säätää lopulliset ajat
   kohdilleen.
-* Featureja
+* Suunnitteilla olevia toimintoja
 ** TODO Harjoituksien lataaminen ical formaatissa
  Tämän voi tehdä browserissa käyttämällä data-formaatin a hreffiä
  esim
