@@ -1,8 +1,9 @@
-* TODO Harjoituksien lataaminen ical formaatissa
-Tämän voi tehdä browserissa käyttämällä data-formaatin a hreffiä
-esim
-https://ourcodeworld.com/articles/read/189/how-to-create-a-file-and-generate-a-download-with-javascript-in-the-browser-without-a-server
-* TODO Viikon vaihtaminen
-* TODO Useamman viikon ohjelman tekeminen kerralla
-Jos haluan tehdä useamman viikon ohjelman kerralla, haluan luultavasti
-vaihdella viikkoja tai ehkä nähdä niitä useamman kerralla
+* Featureja
+** TODO Harjoituksien lataaminen ical formaatissa
+ Tämän voi tehdä browserissa käyttämällä data-formaatin a hreffiä
+ esim
+ https://ourcodeworld.com/articles/read/189/how-to-create-a-file-and-generate-a-download-with-javascript-in-the-browser-without-a-server
+** TODO Viikon vaihtaminen
+** TODO Useamman viikon ohjelman tekeminen kerralla
+ Jos haluan tehdä useamman viikon ohjelman kerralla, haluan luultavasti
+ vaihdella viikkoja tai ehkä nähdä niitä useamman kerralla
