@@ -1,3 +1,7 @@
+textarea {
+    width: 800px;
+}
+
 .flex-down {
     display: flex;
     flex-direction: column;

@@ -19,23 +19,17 @@
       date
       (Date. year month (- day weekday)))))
 
-(defn inc-date [date days]
+(defn adjust-days [date days]
   (let [new-date (.clone date)]
     (->> (Interval. Interval/DAYS days)
          (.add new-date))
     new-date))
 
 (defn dec-week [date]
-  (let [new-date (.clone date)]
-    (->> (Interval. Interval/DAYS -7)
-         (.add new-date))
-    new-date))
+  (adjust-days date -7))
 
 (defn inc-week [date]
-  (let [new-date (.clone date)]
-    (->> (Interval. Interval/DAYS 7)
-         (.add new-date))
-    new-date))
+  (adjust-days date 7))
 
 
 (defn inc-hours [datetime hours]
@@ -65,7 +59,7 @@
     (str weekday " " (.getDate date) "." (inc (.getMonth date)) "." (.getYear date))))
 
 (defn week-grid [monday]
-  (let [date-headers (-> (mapv #(render-date (inc-date monday %)) (range 7))
+  (let [date-headers (-> (mapv #(render-date (adjust-days monday %)) (range 7))
                          (conj "Yhteenveto"))]
     (map-indexed  (fn [i title]
                     (let [top 0
@@ -97,7 +91,7 @@
 (defn identify-datetime [start-date {:keys [x y]}]
   (let [weekday (js/Math.floor (/ x day-width))
         hour (if (< y 200) 6 16)
-        date (inc-date start-date weekday)]
+        date (adjust-days start-date weekday)]
     (DateTime. (.getYear date) (.getMonth date) (.getDate date) hour 0)))
 
 (defn copy-exercise [id exercises]
@@ -179,7 +173,7 @@
   (<= (Date/compare date1 date2) 0))
 
 (defn exercises-for-week [monday exercises]
-  (let [sunday (inc-date monday 6)]
+  (let [sunday (adjust-days monday 6)]
     (filter (fn [{start-time :start-time}]
               (or (not start-time)
                   (let [start-date (Date. (.getYear start-time) (.getMonth start-time) (.getDate start-time))
@@ -188,7 +182,7 @@
                     (and ex-after-monday ex-before-sunday)))) exercises)))
 
 (defn week-day-headers [monday]
-  (-> (mapv #(render-date (inc-date monday %)) (range 7))
+  (-> (mapv #(render-date (adjust-days monday %)) (range 7))
       (conj "Yhteenveto")))
 
 (defn update-editor [evt]
