@@ -27,7 +27,7 @@
          (.add new-date))
     new-date))
 
-(defn pprint-date [date]
+(defn render-date [date]
   (let [weekday (-> (.getIsoWeekday date)
                         (case
                             0 "Maanantai"
@@ -40,7 +40,7 @@
     (str weekday " " (.getDate date) "." (.getMonth date) "." (.getYear date))))
 
 (defn week-grid [monday]
-  (let [date-headers (-> (mapv #(pprint-date (inc-date monday %)) (range 7))
+  (let [date-headers (-> (mapv #(render-date (inc-date monday %)) (range 7))
                          (conj "Yhteenveto"))]
     (map-indexed  (fn [i title]
                     (let [top 0
@@ -105,6 +105,7 @@
         text-offset-y (+ 25 y)]
     [:g {:id id
          :on-mouse-down #(start-drag % id x y)
+         :on-mouse-leave stop-drag
          :on-mouse-up stop-drag}
      [:rect {:width 250
              :height 50
@@ -113,21 +114,26 @@
      [:text {:x text-offset-x :y text-offset-y
              :fill "black"} description]]))
 
-(defn exercises [exercises]
+(defn render-exercises [exercises]
   (map render-exercise exercises))
+
+(defn week-day-headers [monday]
+  (-> (mapv #(pprint-date (inc-date monday %)) (range 7))
+      (conj "Yhteenveto")))
 
 (defn root []
   (fn []
     (let [monday (date->last-monday (:startdate @app))
-          date-headers (-> (mapv #(pprint-date (inc-date monday %)) (range 7))
-                           (conj "Yhteenveto"))]
+          date-headers (week-day-headers monday)
+          exercises (:exercises @app)]
       [:<>
        (-> (into [:svg {:id canvas-id
                         :width canvas-width :height canvas-height
                         :on-mouse-move mousemove
                         :on-mouse-up stop-drag}]
                  (week-grid monday))
-           (into (exercises (:exercises @app))))
+           (into (render-exercises exercises)))
+       ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
        [:p (str (get-in @app [:drag]))]
        [:p (str (get-in @app [:exercises]))]])) )
 
