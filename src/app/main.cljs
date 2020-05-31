@@ -151,7 +151,8 @@
 
 (defn render-exercise [selected-exercise {:keys [id x y description]}]
   (let [text-offset-x (+ 5 x)
-        text-offset-y (+ 25 y)]
+        text-offset-y (+ 25 y)
+        lines (str/split-lines description)]
     [:g {:id id
          :on-mouse-down #(start-drag % id x y)
          :on-mouse-up stop-drag}
@@ -162,8 +163,11 @@
                    (when (= selected-exercise id)
                      {:stroke "black"
                       :stroke-width 3}))]
-     [:text {:x text-offset-x :y text-offset-y
-             :fill "black"} description]]))
+     (into [:text {:x text-offset-x :y text-offset-y
+                   :fill "black"}]
+           (map-indexed  (fn [i line]
+                           [:tspan {:x text-offset-x
+                                    :y (+ text-offset-y (* i 18))} line]) lines))]))
 
 (defn render-exercises [exercises selected-exercise]
   (map (partial render-exercise selected-exercise) (sort :z exercises)))
