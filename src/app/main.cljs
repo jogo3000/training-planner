@@ -1,32 +1,35 @@
 (ns app.main
   (:require [reagent.core :as r]
             [reagent.dom :as rdom])
-  (:import [goog.date Date Interval]))
+  (:import [goog.date Date DateTime Interval]))
 
 (def canvas-id "week-svg")
 (def canvas-width 2100)
 (def canvas-height 400)
 (def day-width (/ canvas-width 8))
 
-(def db (r/atom {:startdate (Date.)
-                 :editor ""
-                 :keys-down #{}
-                 :drag {:dragging? false}
-                 :selected-element nil
-                 :exercises []}))
-
 (defn date->last-monday [date]
   (let [day (.getDate date)
         weekday (.getIsoWeekday date)
         year (.getYear date)
         month (.getMonth date)]
-    (Date. year month (- day weekday))))
+    (if (zero? weekday)
+      date
+      (Date. year month (- day weekday)))))
 
 (defn inc-date [date days]
   (let [new-date (.clone date)]
     (->> (Interval. Interval/DAYS days)
          (.add new-date))
     new-date))
+
+(def db (r/atom {:start-date (date->last-monday (Date.))
+                 :editor ""
+                 :keys-down #{}
+                 :drag {:dragging? false}
+                 :selected-element nil
+                 :exercises []}))
+
 
 (defn render-date [date]
   (let [weekday (-> (.getIsoWeekday date)
@@ -38,7 +41,7 @@
                             4 "Perjantai"
                             5 "Lauantai"
                             6 "Sunnuntai"))]
-    (str weekday " " (.getDate date) "." (.getMonth date) "." (.getYear date))))
+    (str weekday " " (.getDate date) "." (inc (.getMonth date)) "." (.getYear date))))
 
 (defn week-grid [monday]
   (let [date-headers (-> (mapv #(render-date (inc-date monday %)) (range 7))
@@ -69,6 +72,9 @@
         mouse-y (.-clientY evt)]
     {:x (/ (- mouse-x ctm-e) ctm-a)
      :y (/ (- mouse-y ctm-f) ctm-d)}))
+
+(defn identify-datetime [start-date {:keys [x y]}]
+  (inc-date start-date (js/Math.floor (/ x day-width))))
 
 (defn copy-exercise [id exercises]
   (let [copy (-> (filter #(= id (:id %)) exercises)
@@ -102,16 +108,21 @@
 (defn mousemove [evt]
   (let [{:keys [dragging?
                 offset]} (:drag @db)
+        start-date (:start-date @db)
         selected-element (:selected-element @db)]
     (when dragging?
       (swap! db update :exercises
              (fn [exes]
                (let [mouse-position (-> (mouse-position evt)
-                                        (correct-mouse-position offset))]
+                                        (correct-mouse-position offset))
+                     new-datetime (identify-datetime start-date mouse-position)]
                  (mapv (fn [{id :id :as ex}]
                          (if-not (= id selected-element)
                            ex
-                           (merge ex mouse-position)))
+                           (merge
+                            ex
+                            mouse-position
+                            {:datetime new-datetime})))
                        exes)))))))
 
 (defn render-exercise [selected-exercise {:keys [id x y description]}]
@@ -160,7 +171,7 @@
 
 (defn root []
   (fn []
-    (let [monday (date->last-monday (:startdate @db))
+    (let [monday (date->last-monday (:start-date @db))
           date-headers (week-day-headers monday)
           selected-exercise (:selected-element @db)
           exercises (:exercises @db)]
