@@ -39,10 +39,13 @@
          (.add new))
     new))
 
+(defn serialize-start-time [date]
+  (when date (.toIsoString date)))
+
 (defn serialize-exercises [exercises]
   (->> (mapv (fn [ex]
                (-> (update ex :id #(.toString %))
-                   (update :start-time #(.toIsoString %))))
+                   (update :start-time serialize-start-time)))
              exercises)
        clj->js
        (#(js/JSON.stringify %))))
