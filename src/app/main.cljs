@@ -58,6 +58,12 @@
                             6 "Sunnuntai"))]
     (str weekday " " (.getDate date) "." (inc (.getMonth date)) "." (.getYear date))))
 
+(defn clear-selected-exercise []
+  (swap! db
+         (fn [db]
+           (assoc db :selected-element nil
+                  :editor ""))))
+
 (defn week-grid [monday]
   (let [date-headers (-> (mapv #(render-date (adjust-days monday %)) (range 7))
                          (conj "Yhteenveto"))]
@@ -65,7 +71,8 @@
                     (let [top 0
                           left (* i day-width)]
                       [:<>
-                       [:rect {:width day-width
+                       [:rect {:on-click clear-selected-exercise
+                               :width day-width
                                :height canvas-height
                                :stroke-width 2
                                :stroke "black"
@@ -106,12 +113,20 @@
     (update db :exercises (partial copy-exercise id))
     db))
 
-(defn start-drag [evt id x y]
+(defn modify-exercise [exercises id f]
+  (mapv (fn [ex]
+          (if-not (= id (:id ex))
+            ex
+            (f ex)))
+        exercises))
+
+(defn start-drag [evt {:keys [id x y description]}]
   (let [mouse-position (mouse-position evt)]
     (swap! db (fn [db]
                 (-> (maybe-copy-exercise db id)
                      (assoc-in [:drag :dragging?] true)
                      (assoc :selected-element id)
+                     (assoc :editor description)
                      (assoc-in [:drag :offset] {:x (- (:x mouse-position) x)
                                                 :y (- (:y mouse-position) y)}))))))
 
@@ -134,21 +149,17 @@
                (let [mouse-position (-> (mouse-position evt)
                                         (correct-mouse-position offset))
                      new-datetime (identify-datetime start-date mouse-position)]
-                 (mapv (fn [{id :id :as ex}]
-                         (if-not (= id selected-element)
-                           ex
-                           (merge
-                            ex
-                            mouse-position
-                            {:start-time new-datetime})))
-                       exes)))))))
+                 (modify-exercise
+                  exes
+                  selected-element
+                  #(merge % mouse-position {:start-time new-datetime}))))))))
 
-(defn render-exercise [selected-exercise {:keys [id x y description]}]
+(defn render-exercise [selected-exercise {:keys [id x y description] :as exercise}]
   (let [text-offset-x (+ 5 x)
         text-offset-y (+ 25 y)
         lines (str/split-lines description)]
     [:g {:id id
-         :on-mouse-down #(start-drag % id x y)
+         :on-mouse-down #(start-drag % exercise)
          :on-mouse-up stop-drag}
      [:rect (merge {:width 250
                     :height 50
@@ -186,17 +197,28 @@
       (conj "Yhteenveto")))
 
 (defn update-editor [evt]
-  (swap! db assoc :editor (-> evt .-target .-value)))
+  (swap! db
+         (fn [db]
+           (let [new-value (-> evt .-target .-value)
+                 selected-element (:selected-element db)]
+             (-> (assoc db :editor new-value)
+                 (update :exercises (fn [exes]
+                                      (modify-exercise
+                                       exes
+                                       selected-element
+                                       #(assoc % :description new-value)))))))))
 
 (defn create-exercise []
   (swap! db
          (fn [db]
-           (update db :exercises
-                   conj {:id (random-uuid)
-                         :x 0
-                         :y 0
-                         :z 0
-                         :description (:editor db)}))))
+           (let [id (random-uuid)]
+             (-> (update db :exercises
+                         conj {:id id
+                               :x 0
+                               :y 0
+                               :z 0
+                               :description (:editor db)})
+                 (assoc :selected-element id))))))
 
 (defn delete-exercise []
   (swap! db
@@ -253,7 +275,8 @@ CALSCALE:GREGORIAN"
     (let [monday (date->last-monday (:start-date @db))
           date-headers (week-day-headers monday)
           selected-exercise (:selected-element @db)
-          exercises (:exercises @db)]
+          exercises (:exercises @db)
+          editor (:editor @db)]
       [:<>
        [:link {:rel "stylesheet" :href "/css/main.css"}]
        [:div {:class "flex-down"}
@@ -262,14 +285,15 @@ CALSCALE:GREGORIAN"
                    :on-click previous-week}"Edellinen viikko"]
          [:button {:class "primary-button"
                    :on-click next-week} "Seuraava viikko"]]
-        (-> (into [:svg {:id canvas-id
-                         :width canvas-width :height canvas-height
-                         :on-mouse-move mousemove
-                         :on-mouse-up stop-drag}]
-                  (week-grid monday))
+        (-> [:svg {:id canvas-id
+                   :width canvas-width :height canvas-height
+                   :on-mouse-move mousemove
+                   :on-mouse-up stop-drag}]
+            (into (week-grid monday))
             (into (render-exercises (exercises-for-week monday exercises) selected-exercise)))
         [:textarea {:rows 10
                     :cols 80
+                    :value editor
                     :on-change update-editor}]
         [:button {:class "primary-button"
                   :on-click create-exercise}

@@ -18,9 +18,6 @@ Ainakin se tulisi rivittää oikein
 ** TODO Useamman viikon ohjelman tekeminen kerralla
  Jos haluan tehdä useamman viikon ohjelman kerralla, haluan luultavasti
  vaihdella viikkoja tai ehkä nähdä niitä useamman kerralla
-** TODO Harjoituksen muokkaaminen
-- valittu harjoitus tulisi editoriin ja se muokkaisi harjoitusta
-- kokeiltava tuleeko tästä hämminkiä
 ** TODO Yhteenvedon laskeminen
 - Harjoituksen pituus pitää saada pääteltyä harjoituksesta, muuten
   näiden syöttäminen menee hankalaksi
