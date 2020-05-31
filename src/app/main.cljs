@@ -118,7 +118,7 @@
   (map render-exercise exercises))
 
 (defn week-day-headers [monday]
-  (-> (mapv #(pprint-date (inc-date monday %)) (range 7))
+  (-> (mapv #(render-date (inc-date monday %)) (range 7))
       (conj "Yhteenveto")))
 
 (defn root []
@@ -134,8 +134,7 @@
                  (week-grid monday))
            (into (render-exercises exercises)))
        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
-       [:p (str (get-in @app [:drag]))]
-       [:p (str (get-in @app [:exercises]))]])) )
+       [:p (with-out-str (cljs.pprint/pprint @app))]])) )
 
 (defn ^:export ^:dev/after-load main! []
   (rdom/render
