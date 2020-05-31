@@ -245,27 +245,29 @@ CALSCALE:GREGORIAN"
           date-headers (week-day-headers monday)
           selected-exercise (:selected-element @db)
           exercises (:exercises @db)]
-      [:div {:class "flex-down"}
-       [:div {:class "flex-right"}
-        [:button {:on-click previous-week}"Edellinen viikko"]
-        [:button {:on-click next-week} "Seuraava viikko"]]
-       (-> (into [:svg {:id canvas-id
-                        :width canvas-width :height canvas-height
-                        :on-mouse-move mousemove
-                        :on-mouse-up stop-drag}]
-                 (week-grid monday))
-           (into (render-exercises exercises selected-exercise)))
-       [:textarea {:rows 10
-                   :on-change update-editor}]
-       [:button {:on-click create-exercise}
-        "Luo harjoitus"]
-       [:button {:on-click delete-exercise}
-        "Poista harjoitus"]
-       ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
-       [:p (with-out-str (cljs.pprint/pprint @db))]
-       [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical)))
-            :download "harjoitukset.ics"}
-        "Lataa viikon harjoitukset"]])) )
+      [:<>
+       [:link {:rel "stylesheet" :href "/css/main.css"}]
+       [:div {:class "flex-down"}
+        [:div {:class "flex-right"}
+         [:button {:on-click previous-week}"Edellinen viikko"]
+         [:button {:on-click next-week} "Seuraava viikko"]]
+        (-> (into [:svg {:id canvas-id
+                         :width canvas-width :height canvas-height
+                         :on-mouse-move mousemove
+                         :on-mouse-up stop-drag}]
+                  (week-grid monday))
+            (into (render-exercises exercises selected-exercise)))
+        [:textarea {:rows 10
+                    :on-change update-editor}]
+        [:button {:on-click create-exercise}
+         "Luo harjoitus"]
+        [:button {:on-click delete-exercise}
+         "Poista harjoitus"]
+        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
+        [:p (with-out-str (cljs.pprint/pprint @db))]
+        [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical)))
+             :download "harjoitukset.ics"}
+         "Lataa viikon harjoitukset"]]])) )
 
 
 (defn read-key [evt]
