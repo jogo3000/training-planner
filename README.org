@@ -22,8 +22,5 @@ Ainakin se tulisi rivittää oikein
 - Harjoituksen pituus pitää saada pääteltyä harjoituksesta, muuten
   näiden syöttäminen menee hankalaksi
 - jos se ei arvaa oikein, voisi pituuden syöttää käsin
-** TODO Harjoitusten persistointi
-Kaipa tämän haluaa tehdä niin, että harjoituksia voi selata
-myöhemminkin
 ** TODO Kuukausiyhteenveto
 ** TODO Kausiyhteenveto

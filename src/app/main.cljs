@@ -5,6 +5,7 @@
    [reagent.dom :as rdom])
   (:import [goog.date Date DateTime Interval]))
 
+(def local-storage-key "training-planner-exercises")
 (def canvas-id "week-svg")
 (def canvas-width 2100)
 (def canvas-height 400)
@@ -38,13 +39,48 @@
          (.add new))
     new))
 
-(defonce db (r/atom {:start-date (date->last-monday (Date.))
-                 :editor ""
-                 :keys-down #{}
-                 :drag {:dragging? false}
-                 :selected-element nil
-                 :exercises []}))
+(defn serialize-exercises [exercises]
+  (->> (mapv (fn [ex]
+               (-> (update ex :id #(.toString %))
+                   (update :start-time #(.toIsoString %))))
+             exercises)
+       clj->js
+       (#(js/JSON.stringify %))))
 
+(defn parse-isodatetime [s]
+  (let [[year month date] ((juxt #(.getYear %)
+                                 #(.getMonth %)
+                                 #(.getDate %))
+                           (DateTime/fromIsoString s))]
+       (Date. year month date)))
+
+(defn deserialize-exercises [s]
+  (->> (js/JSON.parse s)
+       (#(js->clj % :keywordize-keys true))
+       (mapv (fn [ex]
+               (-> (update ex :id #(uuid %))
+                   (update :start-time parse-isodatetime))))))
+
+(defn persist-exercises [_ _ _ new-state]
+  (let [to-storage (:exercises new-state)]
+    (->> (:exercises new-state)
+         serialize-exercises
+         (.setItem js/window.localStorage local-storage-key))))
+
+(defn load-exercises []
+  (->> (.getItem js/window.localStorage local-storage-key)
+       deserialize-exercises))
+
+(defonce db
+  (let [stored-exercises (load-exercises)
+        ratom (r/atom {:start-date (date->last-monday (Date.))
+                       :editor ""
+                       :keys-down #{}
+                       :drag {:dragging? false}
+                       :selected-element nil
+                       :exercises stored-exercises})]
+    (add-watch ratom :persistence-watcher persist-exercises)
+    ratom))
 
 (defn render-date [date]
   (let [weekday (-> (.getIsoWeekday date)
