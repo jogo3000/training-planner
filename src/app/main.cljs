@@ -147,6 +147,14 @@
                          :z 0
                          :description (:editor db)}))))
 
+(defn delete-exercise []
+  (swap! db
+         (fn [db]
+           (let [selected (:selected-element db)]
+             (update db :exercises
+                     #(filter (fn [ex]
+                                (not= selected (:id ex))) %))))))
+
 (defn root []
   (fn []
     (let [monday (date->last-monday (:startdate @db))
@@ -163,6 +171,8 @@
                    :on-change update-editor}]
        [:button {:on-click create-exercise}
         "Luo harjoitus"]
+       [:button {:on-click delete-exercise}
+        "Poista harjoitus"]
        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
        [:p (with-out-str (cljs.pprint/pprint @db))]])) )
 
