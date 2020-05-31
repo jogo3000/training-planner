@@ -1,3 +1,4 @@
+#+TODO: TODO IN-PROGRESS DONE
 * training-planner
 Yksinkertainen harjoitusohjelman luomiseen tarkoitettu
 työkalu. Tarkoituksena on helpottaa viikko-ohjelman syöttämistä
@@ -12,7 +13,7 @@ helppo syöttää useita samanlaisia harjoituksia.
   kalenteriin. Tässä vaiheessa voit säätää lopulliset ajat
   kohdilleen.
 * Suunnitteilla olevia toimintoja
-** TODO Harjoituksien lataaminen ical formaatissa
+** IN-PROGRESS Harjoituksien lataaminen ical formaatissa
  Tämän voi tehdä browserissa käyttämällä data-formaatin a hreffiä
  esim
  https://ourcodeworld.com/articles/read/189/how-to-create-a-file-and-generate-a-download-with-javascript-in-the-browser-without-a-server

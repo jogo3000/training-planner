@@ -23,6 +23,12 @@
          (.add new-date))
     new-date))
 
+(defn inc-hours [datetime hours]
+  (let [new (.clone datetime)]
+    (->> (Interval. Interval/HOURS hours)
+         (.add new))
+    new))
+
 (def db (r/atom {:start-date (date->last-monday (Date.))
                  :editor ""
                  :keys-down #{}
@@ -74,7 +80,10 @@
      :y (/ (- mouse-y ctm-f) ctm-d)}))
 
 (defn identify-datetime [start-date {:keys [x y]}]
-  (inc-date start-date (js/Math.floor (/ x day-width))))
+  (let [weekday (js/Math.floor (/ x day-width))
+        hour (if (< y 200) 6 16)
+        date (inc-date start-date weekday)]
+    (DateTime. (.getYear date) (.getMonth date) (.getDate date) hour 0)))
 
 (defn copy-exercise [id exercises]
   (let [copy (-> (filter #(= id (:id %)) exercises)
@@ -122,7 +131,7 @@
                            (merge
                             ex
                             mouse-position
-                            {:datetime new-datetime})))
+                            {:start-time new-datetime})))
                        exes)))))))
 
 (defn render-exercise [selected-exercise {:keys [id x y description]}]
@@ -169,6 +178,37 @@
                      #(filter (fn [ex]
                                 (not= selected (:id ex))) %))))))
 
+(defn ical-render-exercise [exercise]
+  (if-let [start (:start-time exercise)]
+    (let [created "20200524T135634Z"
+          uid (:id exercise)
+          end (inc-hours start 1)
+          summary (:description exercise)
+          description (:description exercise)]
+      (str
+       "\nBEGIN:VEVENT"
+       "\nDTSTAMP:" created
+       "\nUID:" uid
+       "\nDTSTART:" (.toString start)
+       "\nDTEND:" (.toString end)
+       "\nSUMMARY:" summary
+       "\nDESCRIPTION:" description
+       "\nCATEGORIES:training-plan"
+       "\nEND:VEVENT"))))
+
+(defn to-ical []
+  (let [exercises (:exercises @db)]
+    (str "BEGIN:VCALENDAR
+VERSION:2.0
+X-WR-CALNAME:harjoitukset
+PRODID:-//Matti Uusitalo//training-planner//EN
+X-WR-TIMEZONE:EEST
+X-WR-CALDESC:Viikon harjoitukset
+CALSCALE:GREGORIAN"
+         (apply str (map ical-render-exercise exercises))
+         "\nEND:VCALENDAR
+")))
+
 (defn root []
   (fn []
     (let [monday (date->last-monday (:start-date @db))
@@ -189,7 +229,9 @@
        [:button {:on-click delete-exercise}
         "Poista harjoitus"]
        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
-       [:p (with-out-str (cljs.pprint/pprint @db))]])) )
+       [:p (with-out-str (cljs.pprint/pprint @db))]
+       [:p [:pre (to-ical)]]])) )
+
 
 (defn read-key [evt]
   (.-key evt))
