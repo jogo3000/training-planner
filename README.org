@@ -1,3 +1,16 @@
+* training-planner
+Yksinkertainen harjoitusohjelman luomiseen tarkoitettu
+työkalu. Tarkoituksena on helpottaa viikko-ohjelman syöttämistä
+kalenteriin. Peruspuutteena kalenteriohjelmissa on, ettei yksittäistä
+merkintää voi helposti kopioida. Tämä vaikeuttaa peruslenkkien
+syöttämistä kalenteriin.
+* Käyttö
+-  Syötä harjotuksia ja laita ne paikalleen hiirellä. Jos painat CTRL
+pohjaan ennen harjoituksen raahaamista, harjoitus kopioituu. Näin on
+helppo syöttää useita samanlaisia harjoituksia.
+- Lataa harjoitukset ical muodossa ja importtaa haluamaasi
+  kalenteriin. Tässä vaiheessa voit säätää lopulliset ajat
+  kohdilleen.
 * Featureja
 ** TODO Harjoituksien lataaminen ical formaatissa
  Tämän voi tehdä browserissa käyttämällä data-formaatin a hreffiä
