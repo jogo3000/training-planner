@@ -8,7 +8,7 @@
 (def canvas-height 400)
 (def day-width (/ canvas-width 8))
 
-(def app (r/atom {:startdate (Date.)
+(def db (r/atom {:startdate (Date.)
                   :drag {:dragging? false
                          :selected-element nil}
                   :exercises [{:id 1 :x 5 :y 50 :description "Pk 10 km"}
@@ -71,15 +71,15 @@
 
 (defn start-drag [evt id x y]
   (let [mouse-position (mouse-position evt)]
-    (swap! app (fn [app]
-                 (-> (assoc-in app [:drag :dragging?] true)
+    (swap! db (fn [db]
+                 (-> (assoc-in db [:drag :dragging?] true)
                      (assoc-in [:drag :selected-element] id)
                      (assoc-in [:drag :offset] {:x (- (:x mouse-position) x)
                                                 :y (- (:y mouse-position) y)}))))))
 
 (defn stop-drag []
-  (swap! app (fn [app]
-               (assoc app :drag {:dragging? false :selected-element nil}))))
+  (swap! db (fn [db]
+               (assoc db :drag {:dragging? false :selected-element nil}))))
 
 (defn correct-mouse-position [mouse offset]
   {:x (- (:x mouse) (:x offset))
@@ -88,9 +88,9 @@
 (defn mousemove [evt]
   (let [{:keys [dragging?
                 selected-element
-                offset]} (:drag @app)]
+                offset]} (:drag @db)]
     (when dragging?
-      (swap! app update :exercises
+      (swap! db update :exercises
              (fn [exes]
                (let [mouse-position (-> (mouse-position evt)
                                         (correct-mouse-position offset))]
@@ -123,9 +123,9 @@
 
 (defn root []
   (fn []
-    (let [monday (date->last-monday (:startdate @app))
+    (let [monday (date->last-monday (:startdate @db))
           date-headers (week-day-headers monday)
-          exercises (:exercises @app)]
+          exercises (:exercises @db)]
       [:<>
        (-> (into [:svg {:id canvas-id
                         :width canvas-width :height canvas-height
@@ -134,7 +134,7 @@
                  (week-grid monday))
            (into (render-exercises exercises)))
        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
-       [:p (with-out-str (cljs.pprint/pprint @app))]])) )
+       [:p (with-out-str (cljs.pprint/pprint @db))]])) )
 
 (defn ^:export ^:dev/after-load main! []
   (rdom/render
