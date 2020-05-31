@@ -44,7 +44,7 @@
          (.add new))
     new))
 
-(def db (r/atom {:start-date (date->last-monday (Date.))
+(defonce db (r/atom {:start-date (date->last-monday (Date.))
                  :editor ""
                  :keys-down #{}
                  :drag {:dragging? false}
