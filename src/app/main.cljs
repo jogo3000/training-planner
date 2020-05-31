@@ -25,6 +25,19 @@
          (.add new-date))
     new-date))
 
+(defn dec-week [date]
+  (let [new-date (.clone date)]
+    (->> (Interval. Interval/DAYS -7)
+         (.add new-date))
+    new-date))
+
+(defn inc-week [date]
+  (let [new-date (.clone date)]
+    (->> (Interval. Interval/DAYS 7)
+         (.add new-date))
+    new-date))
+
+
 (defn inc-hours [datetime hours]
   (let [new (.clone datetime)]
     (->> (Interval. Interval/HOURS hours)
@@ -216,6 +229,12 @@ CALSCALE:GREGORIAN"
          "\nEND:VCALENDAR
 ")))
 
+(defn previous-week []
+  (swap! db update :start-date dec-week))
+
+(defn next-week []
+  (swap! db update :start-date inc-week))
+
 (defn root []
   (fn []
     (let [monday (date->last-monday (:start-date @db))
@@ -223,6 +242,9 @@ CALSCALE:GREGORIAN"
           selected-exercise (:selected-element @db)
           exercises (:exercises @db)]
       [:div {:class "flex-down"}
+       [:div {:class "flex-right"}
+        [:button {:on-click previous-week}"Edellinen viikko"]
+        [:button {:on-click next-week} "Seuraava viikko"]]
        (-> (into [:svg {:id canvas-id
                         :width canvas-width :height canvas-height
                         :on-mouse-move mousemove
