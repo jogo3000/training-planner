@@ -9,11 +9,11 @@
 (def day-width (/ canvas-width 8))
 
 (def db (r/atom {:startdate (Date.)
+                 :editor ""
                  :keys-down #{}
-                 :drag {:dragging? false
-                        :selected-element nil}
-                 :exercises [{:id (random-uuid) :x 5 :y 50 :z 1 :description "Pk 10 km"}
-                             {:id (random-uuid) :x 5 :y 200 :z 2 :description "Vr 10' + 2 x 10' / 2' + vr 10'"}]}))
+                 :drag {:dragging? false}
+                 :selected-element nil
+                 :exercises []}))
 
 (defn date->last-monday [date]
   (let [day (.getDate date)
@@ -87,13 +87,13 @@
     (swap! db (fn [db]
                 (-> (maybe-copy-exercise db id)
                      (assoc-in [:drag :dragging?] true)
-                     (assoc-in [:drag :selected-element] id)
+                     (assoc :selected-element id)
                      (assoc-in [:drag :offset] {:x (- (:x mouse-position) x)
                                                 :y (- (:y mouse-position) y)}))))))
 
 (defn stop-drag []
   (swap! db (fn [db]
-               (assoc db :drag {:dragging? false :selected-element nil}))))
+               (assoc db :drag {:dragging? false}))))
 
 (defn correct-mouse-position [mouse offset]
   {:x (- (:x mouse) (:x offset))
@@ -101,8 +101,8 @@
 
 (defn mousemove [evt]
   (let [{:keys [dragging?
-                selected-element
-                offset]} (:drag @db)]
+                offset]} (:drag @db)
+        selected-element (:selected-element @db)]
     (when dragging?
       (swap! db update :exercises
              (fn [exes]
@@ -134,18 +134,35 @@
   (-> (mapv #(render-date (inc-date monday %)) (range 7))
       (conj "Yhteenveto")))
 
+(defn update-editor [evt]
+  (swap! db assoc :editor (-> evt .-target .-value)))
+
+(defn create-exercise []
+  (swap! db
+         (fn [db]
+           (update db :exercises
+                   conj {:id (random-uuid)
+                         :x 0
+                         :y 0
+                         :z 0
+                         :description (:editor db)}))))
+
 (defn root []
   (fn []
     (let [monday (date->last-monday (:startdate @db))
           date-headers (week-day-headers monday)
           exercises (:exercises @db)]
-      [:<>
+      [:div {:class "flex-down"}
        (-> (into [:svg {:id canvas-id
                         :width canvas-width :height canvas-height
                         :on-mouse-move mousemove
                         :on-mouse-up stop-drag}]
                  (week-grid monday))
            (into (render-exercises exercises)))
+       [:textarea {:rows 10
+                   :on-change update-editor}]
+       [:button {:on-click create-exercise}
+        "Luo harjoitus"]
        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
        [:p (with-out-str (cljs.pprint/pprint @db))]])) )
 
