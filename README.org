@@ -23,3 +23,6 @@ helppo syöttää useita samanlaisia harjoituksia.
 ** TODO Useamman rivin harjoitus
 - eka rivi on title
 - loput descriptionia
+** TODO Harjoituksen muokkaaminen
+- valittu harjoitus tulisi editoriin ja se muokkaisi harjoitusta
+- kokeiltava tuleeko tästä hämminkiä
