@@ -237,7 +237,9 @@ CALSCALE:GREGORIAN"
         "Poista harjoitus"]
        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
        [:p (with-out-str (cljs.pprint/pprint @db))]
-       [:p [:pre (to-ical)]]])) )
+       [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical)))
+            :download "harjoitukset.ics"}
+        "Lataa viikon harjoitukset"]])) )
 
 
 (defn read-key [evt]
