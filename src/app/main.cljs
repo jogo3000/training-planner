@@ -114,21 +114,24 @@
                            (merge ex mouse-position)))
                        exes)))))))
 
-(defn render-exercise [{:keys [id x y description]}]
+(defn render-exercise [selected-exercise {:keys [id x y description]}]
   (let [text-offset-x (+ 5 x)
         text-offset-y (+ 25 y)]
     [:g {:id id
          :on-mouse-down #(start-drag % id x y)
          :on-mouse-up stop-drag}
-     [:rect {:width 250
-             :height 50
-             :x x :y y
-             :fill "green"}]
+     [:rect (merge {:width 250
+                    :height 50
+                    :x x :y y
+                    :fill "green"}
+                   (when (= selected-exercise id)
+                     {:stroke "black"
+                      :stroke-width 3}))]
      [:text {:x text-offset-x :y text-offset-y
              :fill "black"} description]]))
 
-(defn render-exercises [exercises]
-  (map render-exercise (sort :z exercises)))
+(defn render-exercises [exercises selected-exercise]
+  (map (partial render-exercise selected-exercise) (sort :z exercises)))
 
 (defn week-day-headers [monday]
   (-> (mapv #(render-date (inc-date monday %)) (range 7))
@@ -159,6 +162,7 @@
   (fn []
     (let [monday (date->last-monday (:startdate @db))
           date-headers (week-day-headers monday)
+          selected-exercise (:selected-element @db)
           exercises (:exercises @db)]
       [:div {:class "flex-down"}
        (-> (into [:svg {:id canvas-id
@@ -166,7 +170,7 @@
                         :on-mouse-move mousemove
                         :on-mouse-up stop-drag}]
                  (week-grid monday))
-           (into (render-exercises exercises)))
+           (into (render-exercises exercises selected-exercise)))
        [:textarea {:rows 10
                    :on-change update-editor}]
        [:button {:on-click create-exercise}
