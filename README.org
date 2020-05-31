@@ -13,6 +13,8 @@ helppo syöttää useita samanlaisia harjoituksia.
   kalenteriin. Tässä vaiheessa voit säätää lopulliset ajat
   kohdilleen.
 * Suunnitteilla olevia toimintoja
+** TODO Renderöi harjoitus paremmin
+Ainakin se tulisi rivittää oikein
 ** TODO Useamman viikon ohjelman tekeminen kerralla
  Jos haluan tehdä useamman viikon ohjelman kerralla, haluan luultavasti
  vaihdella viikkoja tai ehkä nähdä niitä useamman kerralla
@@ -22,3 +24,4 @@ helppo syöttää useita samanlaisia harjoituksia.
 ** TODO Harjoituksen muokkaaminen
 - valittu harjoitus tulisi editoriin ja se muokkaisi harjoitusta
 - kokeiltava tuleeko tästä hämminkiä
+** TODO Yhteenvedon laskeminen
