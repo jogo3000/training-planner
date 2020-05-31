@@ -172,6 +172,21 @@
 (defn render-exercises [exercises selected-exercise]
   (map (partial render-exercise selected-exercise) (sort :z exercises)))
 
+(defn date>= [date1 date2]
+  (>= (Date/compare date1 date2) 0))
+
+(defn date<= [date1 date2]
+  (<= (Date/compare date1 date2) 0))
+
+(defn exercises-for-week [monday exercises]
+  (let [sunday (inc-date monday 6)]
+    (filter (fn [{start-time :start-time}]
+              (or (not start-time)
+                  (let [start-date (Date. (.getYear start-time) (.getMonth start-time) (.getDate start-time))
+                        ex-after-monday (date>= start-date monday)
+                        ex-before-sunday (date<= start-date sunday)]
+                    (and ex-after-monday ex-before-sunday)))) exercises)))
+
 (defn week-day-headers [monday]
   (-> (mapv #(render-date (inc-date monday %)) (range 7))
       (conj "Yhteenveto")))
@@ -258,7 +273,7 @@ CALSCALE:GREGORIAN"
                          :on-mouse-move mousemove
                          :on-mouse-up stop-drag}]
                   (week-grid monday))
-            (into (render-exercises exercises selected-exercise)))
+            (into (render-exercises (exercises-for-week monday exercises) selected-exercise)))
         [:textarea {:rows 10
                     :cols 80
                     :on-change update-editor}]
