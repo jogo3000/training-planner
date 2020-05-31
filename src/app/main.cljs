@@ -9,10 +9,11 @@
 (def day-width (/ canvas-width 8))
 
 (def db (r/atom {:startdate (Date.)
-                  :drag {:dragging? false
-                         :selected-element nil}
-                  :exercises [{:id 1 :x 5 :y 50 :description "Pk 10 km"}
-                              {:id 2 :x 5 :y 200 :description "Vr 10' + 2 x 10' / 2' + vr 10'"}]}))
+                 :keys-down #{}
+                 :drag {:dragging? false
+                        :selected-element nil}
+                 :exercises [{:id (random-uuid) :x 5 :y 50 :z 1 :description "Pk 10 km"}
+                             {:id (random-uuid) :x 5 :y 200 :z 2 :description "Vr 10' + 2 x 10' / 2' + vr 10'"}]}))
 
 (defn date->last-monday [date]
   (let [day (.getDate date)
@@ -69,10 +70,23 @@
     {:x (/ (- mouse-x ctm-e) ctm-a)
      :y (/ (- mouse-y ctm-f) ctm-d)}))
 
+(defn copy-exercise [id exercises]
+  (let [copy (-> (filter #(= id (:id %)) exercises)
+                 first
+                 (assoc :id (random-uuid))
+                 (update :z dec))]
+    (conj exercises copy)))
+
+(defn maybe-copy-exercise [db id]
+  (if ((:keys-down db) "Control")
+    (update db :exercises (partial copy-exercise id))
+    db))
+
 (defn start-drag [evt id x y]
   (let [mouse-position (mouse-position evt)]
     (swap! db (fn [db]
-                 (-> (assoc-in db [:drag :dragging?] true)
+                (-> (maybe-copy-exercise db id)
+                     (assoc-in [:drag :dragging?] true)
                      (assoc-in [:drag :selected-element] id)
                      (assoc-in [:drag :offset] {:x (- (:x mouse-position) x)
                                                 :y (- (:y mouse-position) y)}))))))
@@ -105,7 +119,6 @@
         text-offset-y (+ 25 y)]
     [:g {:id id
          :on-mouse-down #(start-drag % id x y)
-         :on-mouse-leave stop-drag
          :on-mouse-up stop-drag}
      [:rect {:width 250
              :height 50
@@ -115,7 +128,7 @@
              :fill "black"} description]]))
 
 (defn render-exercises [exercises]
-  (map render-exercise exercises))
+  (map render-exercise (sort :z exercises)))
 
 (defn week-day-headers [monday]
   (-> (mapv #(render-date (inc-date monday %)) (range 7))
@@ -136,7 +149,20 @@
        ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
        [:p (with-out-str (cljs.pprint/pprint @db))]])) )
 
+(defn read-key [evt]
+  (.-key evt))
+
+(defn on-key-down [evt]
+  (swap! db update :keys-down conj (read-key evt)))
+
+(defn on-key-up [evt]
+  (swap! db update :keys-down disj (read-key evt)))
+
 (defn ^:export ^:dev/after-load main! []
+
+  (js/document.addEventListener "keydown" on-key-down)
+  (js/document.addEventListener "keyup" on-key-up)
+
   (rdom/render
    [root]
    (js/document.getElementById "app")))
