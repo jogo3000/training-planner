@@ -249,8 +249,10 @@ CALSCALE:GREGORIAN"
        [:link {:rel "stylesheet" :href "/css/main.css"}]
        [:div {:class "flex-down"}
         [:div {:class "flex-right"}
-         [:button {:on-click previous-week}"Edellinen viikko"]
-         [:button {:on-click next-week} "Seuraava viikko"]]
+         [:button {:class "primary-button"
+                   :on-click previous-week}"Edellinen viikko"]
+         [:button {:class "primary-button"
+                   :on-click next-week} "Seuraava viikko"]]
         (-> (into [:svg {:id canvas-id
                          :width canvas-width :height canvas-height
                          :on-mouse-move mousemove
@@ -258,10 +260,13 @@ CALSCALE:GREGORIAN"
                   (week-grid monday))
             (into (render-exercises exercises selected-exercise)))
         [:textarea {:rows 10
+                    :cols 80
                     :on-change update-editor}]
-        [:button {:on-click create-exercise}
+        [:button {:class "primary-button"
+                  :on-click create-exercise}
          "Luo harjoitus"]
-        [:button {:on-click delete-exercise}
+        [:button {:class "primary-button"
+                  :on-click delete-exercise}
          "Poista harjoitus"]
         ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
         [:p (with-out-str (cljs.pprint/pprint @db))]
