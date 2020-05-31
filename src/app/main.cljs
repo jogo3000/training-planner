@@ -1,6 +1,8 @@
 (ns app.main
-  (:require [reagent.core :as r]
-            [reagent.dom :as rdom])
+  (:require
+   [clojure.string :as str]
+   [reagent.core :as r]
+   [reagent.dom :as rdom])
   (:import [goog.date Date DateTime Interval]))
 
 (def canvas-id "week-svg")
@@ -178,12 +180,17 @@
                      #(filter (fn [ex]
                                 (not= selected (:id ex))) %))))))
 
+(defn ical-render-summary [description]
+  (first (str/split-lines description)))
+
+(defn ical-render-description [description]
+  (str/escape description {\newline "\\n"}))
+
 (defn ical-render-exercise [exercise]
   (if-let [start (:start-time exercise)]
     (let [created "20200524T135634Z"
           uid (:id exercise)
           end (inc-hours start 1)
-          summary (:description exercise)
           description (:description exercise)]
       (str
        "\nBEGIN:VEVENT"
@@ -191,8 +198,8 @@
        "\nUID:" uid
        "\nDTSTART:" (.toString start)
        "\nDTEND:" (.toString end)
-       "\nSUMMARY:" summary
-       "\nDESCRIPTION:" description
+       "\nSUMMARY:" (ical-render-summary description)
+       "\nDESCRIPTION:" (ical-render-description description)
        "\nCATEGORIES:training-plan"
        "\nEND:VEVENT"))))
 
