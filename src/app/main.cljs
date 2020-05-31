@@ -224,9 +224,11 @@
   (swap! db
          (fn [db]
            (let [selected (:selected-element db)]
-             (update db :exercises
-                     #(filter (fn [ex]
-                                (not= selected (:id ex))) %))))))
+             (-> (update db :exercises
+                         #(filter (fn [ex]
+                                    (not= selected (:id ex))) %))
+                 (assoc :selected-element nil
+                        :editor ""))))))
 
 (defn ical-render-summary [description]
   (first (str/split-lines description)))
