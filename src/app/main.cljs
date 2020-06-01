@@ -67,11 +67,10 @@
        (into {})))
 
 (defn persist-exercises [_ _ _ new-state]
-  (let [to-storage (:exercises new-state)]
-    (->> (:exercises new-state)
-         vals
-         serialize-exercises
-         (.setItem js/window.localStorage local-storage-key))))
+  (->> (:exercises new-state)
+       vals
+       serialize-exercises
+       (.setItem js/window.localStorage local-storage-key)))
 
 (defn load-exercises []
   (->> (.getItem js/window.localStorage local-storage-key)
