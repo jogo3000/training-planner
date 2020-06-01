@@ -136,9 +136,6 @@
         date (adjust-days start-date weekday)]
     (DateTime. (.getYear date) (.getMonth date) (.getDate date) hour 0)))
 
-(defn modify-exercise [exercises id f]
-  (update exercises id f))
-
 (defmethod handle :stop-drag [_ db]
   (assoc db :drag {:dragging? false}))
 
@@ -167,11 +164,7 @@
   (let [new-value (-> evt .-target .-value)
         selected-element (:selected-element db)]
     (cond-> (assoc db :editor new-value)
-      selected-element (update :exercises (fn [exes]
-                                            (modify-exercise
-                                             exes
-                                             selected-element
-                                             #(assoc % :description new-value)))))))
+      selected-element (update-in [:exercises selected-element] #(assoc % :description new-value)))))
 
 (defmethod handle :create-exercise [_ db]
   (let [id (random-uuid)]
@@ -200,16 +193,13 @@
   (if-not (get-in db [:drag :dragging?]) db
           (let [offset (get-in db [:drag :offset])
                 start-date (:start-date db)
-                selected-element (:selected-element db)]
-            (update db :exercises
-                    (fn [exes]
-                      (let [mouse-position (-> (mouse-position evt)
-                                               (correct-mouse-position offset))
-                            new-datetime (identify-datetime start-date mouse-position)]
-                        (modify-exercise
-                         exes
-                         selected-element
-                         #(merge % mouse-position {:start-time new-datetime}))))))))
+                selected-element (:selected-element db)
+                mouse-position (-> (mouse-position evt)
+                                                  (correct-mouse-position offset))
+                new-datetime (identify-datetime start-date mouse-position)]
+
+            (update-in db [:exercises selected-element]
+                       #(merge % mouse-position {:start-time new-datetime})))))
 
 (defn ical-render-summary [description]
   (first (str/split-lines description)))
@@ -349,7 +339,7 @@ CALSCALE:GREGORIAN"
 (defmethod handle :on-key-down [_ db evt]
   (update db :keys-down conj (read-key evt)))
 
-(defmethod handle :on-key-up [evt]
+(defmethod handle :on-key-up [_ db evt]
   (update db :keys-down disj (read-key evt)))
 
 (defn ^:export ^:dev/after-load main! []
