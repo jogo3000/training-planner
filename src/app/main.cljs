@@ -219,10 +219,6 @@
                         ex-before-sunday (date<= start-date sunday)]
                     (and ex-after-monday ex-before-sunday)))) exercises)))
 
-(defn week-day-headers [monday]
-  (-> (mapv #(render-date (adjust-days monday %)) (range 7))
-      (conj "Yhteenveto")))
-
 (defn update-editor [evt]
   (swap! db
          (fn [db]
@@ -317,7 +313,6 @@ CALSCALE:GREGORIAN"
   (fn []
     (let [start-date (:start-date @db)
           monday (date->last-monday start-date)
-          date-headers (week-day-headers monday)
           selected-exercise (:selected-element @db)
           exercises (vals (:exercises @db))
           editor (:editor @db)
