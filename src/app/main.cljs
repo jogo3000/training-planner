@@ -33,7 +33,7 @@
   (adjust-days date 7))
 
 
-(defn inc-hours [datetime hours]
+(defn adjust-hours [datetime hours]
   (let [new (.clone datetime)]
     (->> (Interval. Interval/HOURS hours)
          (.add new))
@@ -269,7 +269,7 @@
   (if-let [start (:start-time exercise)]
     (let [created "20200524T135634Z"
           uid (:id exercise)
-          end (inc-hours start 1)
+          end (adjust-hours start 1)
           description (:description exercise)]
       (str
        "\nBEGIN:VEVENT"
