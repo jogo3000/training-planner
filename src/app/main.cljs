@@ -283,18 +283,17 @@
        "\nCATEGORIES:training-plan"
        "\nEND:VEVENT"))))
 
-(defn to-ical []
-  (let [exercises (vals (:exercises @db))]
-    (str "BEGIN:VCALENDAR
+(defn to-ical [exercises]
+  (str "BEGIN:VCALENDAR
 VERSION:2.0
 X-WR-CALNAME:harjoitukset
 PRODID:-//Matti Uusitalo//training-planner//EN
 X-WR-TIMEZONE:EEST
 X-WR-CALDESC:Viikon harjoitukset
 CALSCALE:GREGORIAN"
-         (apply str (map ical-render-exercise exercises))
-         "\nEND:VCALENDAR
-")))
+       (apply str (map ical-render-exercise exercises))
+       "\nEND:VCALENDAR
+"))
 
 (defn previous-week []
   (swap! db update :start-date dec-week))
@@ -350,7 +349,7 @@ CALSCALE:GREGORIAN"
          "Poista harjoitus"]
         ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
         [:p (with-out-str (cljs.pprint/pprint @db))]
-        [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical)))
+        [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical exercises)))
              :download "harjoitukset.ics"}
          "Lataa viikon harjoitukset"]]])) )
 
