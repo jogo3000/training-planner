@@ -176,22 +176,6 @@
   {:x (- (:x mouse) (:x offset))
    :y (- (:y mouse) (:y offset))})
 
-(defn mousemove [evt]
-  (let [{:keys [dragging?
-                offset]} (:drag @db)
-        start-date (:start-date @db)
-        selected-element (:selected-element @db)]
-    (when dragging?
-      (swap! db update :exercises
-             (fn [exes]
-               (let [mouse-position (-> (mouse-position evt)
-                                        (correct-mouse-position offset))
-                     new-datetime (identify-datetime start-date mouse-position)]
-                 (modify-exercise
-                  exes
-                  selected-element
-                  #(merge % mouse-position {:start-time new-datetime}))))))))
-
 (defn render-exercise [selected-exercise {:keys [id x y description] :as exercise}]
   {:pre [(map? exercise)]}
   (let [text-offset-x (+ 5 x)
@@ -318,13 +302,28 @@ CALSCALE:GREGORIAN"
 (defn next-week []
   (swap! db update :start-date inc-week))
 
+(defn mousemove [{:keys [dragging? offset]} start-date selected-element]
+  (when dragging?
+    (fn [evt]
+      (swap! db update :exercises
+             (fn [exes]
+               (let [mouse-position (-> (mouse-position evt)
+                                        (correct-mouse-position offset))
+                     new-datetime (identify-datetime start-date mouse-position)]
+                 (modify-exercise
+                  exes
+                  selected-element
+                  #(merge % mouse-position {:start-time new-datetime}))))))))
+
 (defn root []
   (fn []
-    (let [monday (date->last-monday (:start-date @db))
+    (let [start-date (:start-date @db)
+          monday (date->last-monday start-date)
           date-headers (week-day-headers monday)
           selected-exercise (:selected-element @db)
           exercises (vals (:exercises @db))
-          editor (:editor @db)]
+          editor (:editor @db)
+          drag (:drag @db)]
       [:<>
        [:link {:rel "stylesheet" :href "/css/main.css"}]
        [:div {:class "flex-down"}
@@ -335,7 +334,7 @@ CALSCALE:GREGORIAN"
                    :on-click next-week} "Seuraava viikko"]]
         (-> [:svg {:id canvas-id
                    :width canvas-width :height canvas-height
-                   :on-mouse-move mousemove
+                   :on-mouse-move (mousemove drag start-date selected-exercise)
                    :on-mouse-up stop-drag}]
             (into (week-grid monday))
             (into (render-exercises (exercises-for-week monday exercises) selected-exercise)))
