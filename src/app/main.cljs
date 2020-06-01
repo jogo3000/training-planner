@@ -62,11 +62,14 @@
        (#(js->clj % :keywordize-keys true))
        (mapv (fn [ex]
                (-> (update ex :id #(uuid %))
-                   (update :start-time parse-isodatetime))))))
+                   (update :start-time parse-isodatetime)
+                   ((juxt :id identity)))))
+       (into {})))
 
 (defn persist-exercises [_ _ _ new-state]
   (let [to-storage (:exercises new-state)]
     (->> (:exercises new-state)
+         vals
          serialize-exercises
          (.setItem js/window.localStorage local-storage-key))))
 
@@ -141,11 +144,11 @@
     (DateTime. (.getYear date) (.getMonth date) (.getDate date) hour 0)))
 
 (defn copy-exercise [id exercises]
-  (let [copy (-> (filter #(= id (:id %)) exercises)
-                 first
-                 (assoc :id (random-uuid))
+  (let [new-id (random-uuid)
+        copy (-> (get exercises id)
+                 (assoc :id new-id)
                  (update :z dec))]
-    (conj exercises copy)))
+    (assoc exercises new-id copy)))
 
 (defn maybe-copy-exercise [db id]
   (if ((:keys-down db) "Control")
@@ -153,11 +156,7 @@
     db))
 
 (defn modify-exercise [exercises id f]
-  (mapv (fn [ex]
-          (if-not (= id (:id ex))
-            ex
-            (f ex)))
-        exercises))
+  (update exercises id f))
 
 (defn start-drag [evt {:keys [id x y description]}]
   (let [mouse-position (mouse-position evt)]
@@ -194,6 +193,7 @@
                   #(merge % mouse-position {:start-time new-datetime}))))))))
 
 (defn render-exercise [selected-exercise {:keys [id x y description] :as exercise}]
+  {:pre [(map? exercise)]}
   (let [text-offset-x (+ 5 x)
         text-offset-y (+ 25 y)
         lines (str/split-lines description)]
@@ -214,7 +214,10 @@
                                     :y (+ text-offset-y (* i 18))} line]) lines))]))
 
 (defn render-exercises [exercises selected-exercise]
-  (map (partial render-exercise selected-exercise) (sort :z exercises)))
+  {:pre [(seq? exercises)]
+   :post [(seq? %)]}
+  (let [in-drawing-order (sort :z exercises)]
+    (map (partial render-exercise selected-exercise) in-drawing-order)))
 
 (defn date>= [date1 date2]
   (>= (Date/compare date1 date2) 0))
@@ -223,6 +226,8 @@
   (<= (Date/compare date1 date2) 0))
 
 (defn exercises-for-week [monday exercises]
+  {:pre [(seq? exercises)]
+   :post [(seq? %)]}
   (let [sunday (adjust-days monday 6)]
     (filter (fn [{start-time :start-time}]
               (or (not start-time)
@@ -247,16 +252,19 @@
                                        selected-element
                                        #(assoc % :description new-value)))))))))
 
+(defn add-exercise [exercise]
+  (swap! db assoc-in [:exercises (:id exercise)] exercise))
+
 (defn create-exercise []
   (swap! db
          (fn [db]
            (let [id (random-uuid)]
-             (-> (update db :exercises
-                         conj {:id id
-                               :x 0
-                               :y 0
-                               :z 0
-                               :description (:editor db)})
+             (-> (assoc-in db [:exercises id]
+                           {:id id
+                            :x 0
+                            :y 0
+                            :z 0
+                            :description (:editor db)})
                  (assoc :selected-element id))))))
 
 (defn delete-exercise []
@@ -264,8 +272,7 @@
          (fn [db]
            (let [selected (:selected-element db)]
              (-> (update db :exercises
-                         #(filter (fn [ex]
-                                    (not= selected (:id ex))) %))
+                         #(dissoc % selected))
                  (assoc :selected-element nil
                         :editor ""))))))
 
@@ -293,7 +300,7 @@
        "\nEND:VEVENT"))))
 
 (defn to-ical []
-  (let [exercises (:exercises @db)]
+  (let [exercises (vals (:exercises @db))]
     (str "BEGIN:VCALENDAR
 VERSION:2.0
 X-WR-CALNAME:harjoitukset
@@ -316,7 +323,7 @@ CALSCALE:GREGORIAN"
     (let [monday (date->last-monday (:start-date @db))
           date-headers (week-day-headers monday)
           selected-exercise (:selected-element @db)
-          exercises (:exercises @db)
+          exercises (vals (:exercises @db))
           editor (:editor @db)]
       [:<>
        [:link {:rel "stylesheet" :href "/css/main.css"}]
