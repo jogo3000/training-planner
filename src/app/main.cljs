@@ -87,43 +87,16 @@
     (add-watch ratom :persistence-watcher persist-exercises)
     ratom))
 
-(defn render-date [date]
-  (let [weekday (-> (.getIsoWeekday date)
-                        (case
-                            0 "Maanantai"
-                            1 "Tiistai"
-                            2 "Keskiviikko"
-                            3 "Torstai"
-                            4 "Perjantai"
-                            5 "Lauantai"
-                            6 "Sunnuntai"))]
-    (str weekday " " (.getDate date) "." (inc (.getMonth date)) "." (.getYear date))))
+(defmulti handle (fn [event _ & _] event))
 
-(defn clear-selected-exercise []
-  (swap! db
-         (fn [db]
-           (assoc db :selected-element nil
-                  :editor ""))))
+(defmethod handle :default [_ db & _] db)
 
-(defn week-grid [monday]
-  (let [date-headers (-> (mapv #(render-date (adjust-days monday %)) (range 7))
-                         (conj "Yhteenveto"))]
-    (map-indexed  (fn [i title]
-                    (let [top 0
-                          left (* i day-width)]
-                      [:<>
-                       [:rect {:on-click clear-selected-exercise
-                               :width day-width
-                               :height canvas-height
-                               :stroke-width 2
-                               :stroke "black"
-                               :x left
-                               :y top
-                               :fill "white"}]
-                       [:text {:x (+ left 10)
-                               :y (+ top 20)}
-                        title]]))
-                  date-headers)))
+(defn emit [event & data]
+  (r/rswap! db #(apply (partial handle event %) data)))
+
+(defmethod handle :clear-selected-exercise [_ db]
+  (assoc db :selected-element nil
+         :editor ""))
 
 (defn mouse-position [evt]
   (let [ctm (.getScreenCTM (js/document.getElementById canvas-id))
@@ -135,12 +108,6 @@
         mouse-y (.-clientY evt)]
     {:x (/ (- mouse-x ctm-e) ctm-a)
      :y (/ (- mouse-y ctm-f) ctm-d)}))
-
-(defn identify-datetime [start-date {:keys [x y]}]
-  (let [weekday (js/Math.floor (/ x day-width))
-        hour (if (< y 200) 6 16)
-        date (adjust-days start-date weekday)]
-    (DateTime. (.getYear date) (.getMonth date) (.getDate date) hour 0)))
 
 (defn copy-exercise [id exercises]
   (let [new-id (random-uuid)
@@ -154,53 +121,30 @@
     (update db :exercises (partial copy-exercise id))
     db))
 
+(defmethod handle :start-drag [_ db evt {:keys [id x y description]}]
+  (let [mouse-position (mouse-position evt)]
+    (-> (maybe-copy-exercise db id)
+        (assoc-in [:drag :dragging?] true)
+        (assoc :selected-element id)
+        (assoc :editor description)
+        (assoc-in [:drag :offset] {:x (- (:x mouse-position) x)
+                                   :y (- (:y mouse-position) y)}))))
+
+(defn identify-datetime [start-date {:keys [x y]}]
+  (let [weekday (js/Math.floor (/ x day-width))
+        hour (if (< y 200) 6 16)
+        date (adjust-days start-date weekday)]
+    (DateTime. (.getYear date) (.getMonth date) (.getDate date) hour 0)))
+
 (defn modify-exercise [exercises id f]
   (update exercises id f))
 
-(defn start-drag [evt {:keys [id x y description]}]
-  (let [mouse-position (mouse-position evt)]
-    (swap! db (fn [db]
-                (-> (maybe-copy-exercise db id)
-                     (assoc-in [:drag :dragging?] true)
-                     (assoc :selected-element id)
-                     (assoc :editor description)
-                     (assoc-in [:drag :offset] {:x (- (:x mouse-position) x)
-                                                :y (- (:y mouse-position) y)}))))))
-
-(defn stop-drag []
-  (swap! db (fn [db]
-               (assoc db :drag {:dragging? false}))))
+(defmethod handle :stop-drag [_ db]
+  (assoc db :drag {:dragging? false}))
 
 (defn correct-mouse-position [mouse offset]
   {:x (- (:x mouse) (:x offset))
    :y (- (:y mouse) (:y offset))})
-
-(defn render-exercise [selected-exercise {:keys [id x y description] :as exercise}]
-  {:pre [(map? exercise)]}
-  (let [text-offset-x (+ 5 x)
-        text-offset-y (+ 25 y)
-        lines (str/split-lines description)]
-    [:g {:id id
-         :on-mouse-down #(start-drag % exercise)
-         :on-mouse-up stop-drag}
-     [:rect (merge {:width 250
-                    :height 50
-                    :x x :y y
-                    :fill "green"}
-                   (when (= selected-exercise id)
-                     {:stroke "black"
-                      :stroke-width 3}))]
-     (into [:text {:x text-offset-x :y text-offset-y
-                   :fill "black"}]
-           (map-indexed  (fn [i line]
-                           [:tspan {:x text-offset-x
-                                    :y (+ text-offset-y (* i 18))} line]) lines))]))
-
-(defn render-exercises [exercises selected-exercise]
-  {:pre [(seq? exercises)]
-   :post [(seq? %)]}
-  (let [in-drawing-order (sort :z exercises)]
-    (map (partial render-exercise selected-exercise) in-drawing-order)))
 
 (defn date>= [date1 date2]
   (>= (Date/compare date1 date2) 0))
@@ -219,41 +163,53 @@
                         ex-before-sunday (date<= start-date sunday)]
                     (and ex-after-monday ex-before-sunday)))) exercises)))
 
-(defn update-editor [evt]
-  (swap! db
-         (fn [db]
-           (let [new-value (-> evt .-target .-value)
-                 selected-element (:selected-element db)]
-             (-> (assoc db :editor new-value)
-                 (update :exercises (fn [exes]
-                                      (modify-exercise
-                                       exes
-                                       selected-element
-                                       #(assoc % :description new-value)))))))))
+(defmethod handle :update-editor [_ db evt]
+  (let [new-value (-> evt .-target .-value)
+        selected-element (:selected-element db)]
+    (cond-> (assoc db :editor new-value)
+      selected-element (update :exercises (fn [exes]
+                                            (modify-exercise
+                                             exes
+                                             selected-element
+                                             #(assoc % :description new-value)))))))
 
-(defn add-exercise [exercise]
-  (swap! db assoc-in [:exercises (:id exercise)] exercise))
+(defmethod handle :create-exercise [_ db]
+  (let [id (random-uuid)]
+    (-> (assoc-in db [:exercises id]
+                  {:id id
+                   :x 0
+                   :y 0
+                   :z 0
+                   :description (:editor db)})
+        (assoc :selected-element id))))
 
-(defn create-exercise []
-  (swap! db
-         (fn [db]
-           (let [id (random-uuid)]
-             (-> (assoc-in db [:exercises id]
-                           {:id id
-                            :x 0
-                            :y 0
-                            :z 0
-                            :description (:editor db)})
-                 (assoc :selected-element id))))))
+(defmethod handle :delete-exercise [_ db]
+  (let [selected (:selected-element db)]
+    (-> (update db :exercises
+                #(dissoc % selected))
+        (assoc :selected-element nil
+               :editor ""))))
 
-(defn delete-exercise []
-  (swap! db
-         (fn [db]
-           (let [selected (:selected-element db)]
-             (-> (update db :exercises
-                         #(dissoc % selected))
-                 (assoc :selected-element nil
-                        :editor ""))))))
+(defmethod handle :previous-week [_ db]
+  (update db :start-date dec-week))
+
+(defmethod handle :next-week [_ db]
+  (update db :start-date inc-week))
+
+(defmethod handle :mousemove [_ db evt]
+  (if-not (get-in db [:drag :dragging?]) db
+          (let [offset (get-in db [:drag :offset])
+                start-date (:start-date db)
+                selected-element (:selected-element db)]
+            (update db :exercises
+                    (fn [exes]
+                      (let [mouse-position (-> (mouse-position evt)
+                                               (correct-mouse-position offset))
+                            new-datetime (identify-datetime start-date mouse-position)]
+                        (modify-exercise
+                         exes
+                         selected-element
+                         #(merge % mouse-position {:start-time new-datetime}))))))))
 
 (defn ical-render-summary [description]
   (first (str/split-lines description)))
@@ -290,24 +246,64 @@ CALSCALE:GREGORIAN"
        "\nEND:VCALENDAR
 "))
 
-(defn previous-week []
-  (swap! db update :start-date dec-week))
+(defn render-date [date]
+  (let [weekday (-> (.getIsoWeekday date)
+                        (case
+                            0 "Maanantai"
+                            1 "Tiistai"
+                            2 "Keskiviikko"
+                            3 "Torstai"
+                            4 "Perjantai"
+                            5 "Lauantai"
+                            6 "Sunnuntai"))]
+    (str weekday " " (.getDate date) "." (inc (.getMonth date)) "." (.getYear date))))
 
-(defn next-week []
-  (swap! db update :start-date inc-week))
+(defn render-week-grid [monday]
+  (let [date-headers (-> (mapv #(render-date (adjust-days monday %)) (range 7))
+                         (conj "Yhteenveto"))]
+    (map-indexed  (fn [i title]
+                    (let [top 0
+                          left (* i day-width)]
+                      [:<>
+                       [:rect {:on-click #(emit :clear-selected-exercise)
+                               :width day-width
+                               :height canvas-height
+                               :stroke-width 2
+                               :stroke "black"
+                               :x left
+                               :y top
+                               :fill "white"}]
+                       [:text {:x (+ left 10)
+                               :y (+ top 20)}
+                        title]]))
+                  date-headers)))
 
-(defn mousemove [{:keys [dragging? offset]} start-date selected-element]
-  (when dragging?
-    (fn [evt]
-      (swap! db update :exercises
-             (fn [exes]
-               (let [mouse-position (-> (mouse-position evt)
-                                        (correct-mouse-position offset))
-                     new-datetime (identify-datetime start-date mouse-position)]
-                 (modify-exercise
-                  exes
-                  selected-element
-                  #(merge % mouse-position {:start-time new-datetime}))))))))
+(defn render-exercise [selected-exercise {:keys [id x y description] :as exercise}]
+  {:pre [(map? exercise)]}
+  (let [text-offset-x (+ 5 x)
+        text-offset-y (+ 25 y)
+        lines (str/split-lines description)]
+    [:g {:id id
+         :on-mouse-down #(emit :start-drag % exercise)
+         :on-mouse-up #(emit :stop-drag)}
+     [:rect (merge {:width 250
+                    :height 50
+                    :x x :y y
+                    :fill "green"}
+                   (when (= selected-exercise id)
+                     {:stroke "black"
+                      :stroke-width 3}))]
+     (into [:text {:x text-offset-x :y text-offset-y
+                   :fill "black"}]
+           (map-indexed  (fn [i line]
+                           [:tspan {:x text-offset-x
+                                    :y (+ text-offset-y (* i 18))} line]) lines))]))
+
+(defn render-exercises [exercises selected-exercise]
+  {:pre [(seq? exercises)]
+   :post [(seq? %)]}
+  (let [in-drawing-order (sort :z exercises)]
+    (map (partial render-exercise selected-exercise) in-drawing-order)))
 
 (defn root []
   (fn []
@@ -315,31 +311,30 @@ CALSCALE:GREGORIAN"
           monday (date->last-monday start-date)
           selected-exercise (:selected-element @db)
           exercises (vals (:exercises @db))
-          editor (:editor @db)
-          drag (:drag @db)]
+          editor (:editor @db)]
       [:<>
        [:link {:rel "stylesheet" :href "/css/main.css"}]
        [:div {:class "flex-down"}
         [:div {:class "flex-right"}
          [:button {:class "primary-button"
-                   :on-click previous-week}"Edellinen viikko"]
+                   :on-click #(emit :previous-week)}"Edellinen viikko"]
          [:button {:class "primary-button"
-                   :on-click next-week} "Seuraava viikko"]]
+                   :on-click #(emit :next-week)} "Seuraava viikko"]]
         (-> [:svg {:id canvas-id
                    :width canvas-width :height canvas-height
-                   :on-mouse-move (mousemove drag start-date selected-exercise)
-                   :on-mouse-up stop-drag}]
-            (into (week-grid monday))
+                   :on-mouse-move #(emit :mousemove %)
+                   :on-mouse-up #(emit :stop-drag)}]
+            (into (render-week-grid monday))
             (into (render-exercises (exercises-for-week monday exercises) selected-exercise)))
         [:textarea {:rows 10
                     :cols 80
                     :value editor
-                    :on-change update-editor}]
+                    :on-change #(emit :update-editor %)}]
         [:button {:class "primary-button"
-                  :on-click create-exercise}
+                  :on-click #(emit :create-exercise)}
          "Luo harjoitus"]
         [:button {:class "primary-button"
-                  :on-click delete-exercise}
+                  :on-click #(emit :delete-exercise)}
          "Poista harjoitus"]
         ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
         [:p (with-out-str (cljs.pprint/pprint @db))]
@@ -351,16 +346,16 @@ CALSCALE:GREGORIAN"
 (defn read-key [evt]
   (.-key evt))
 
-(defn on-key-down [evt]
-  (swap! db update :keys-down conj (read-key evt)))
+(defmethod handle :on-key-down [_ db evt]
+  (update db :keys-down conj (read-key evt)))
 
-(defn on-key-up [evt]
-  (swap! db update :keys-down disj (read-key evt)))
+(defmethod handle :on-key-up [evt]
+  (update db :keys-down disj (read-key evt)))
 
 (defn ^:export ^:dev/after-load main! []
 
-  (js/document.addEventListener "keydown" on-key-down)
-  (js/document.addEventListener "keyup" on-key-up)
+  (js/document.addEventListener "keydown" #(emit :on-key-down %))
+  (js/document.addEventListener "keyup" #(emit :on-key-up %))
 
   (rdom/render
    [root]
