@@ -39,8 +39,21 @@
          (.add new))
     new))
 
+(defn date>= [date1 date2]
+  (>= (Date/compare date1 date2) 0))
+
+(defn date<= [date1 date2]
+  (<= (Date/compare date1 date2) 0))
+
 (defn serialize-start-time [date]
   (when date (.toIsoString date)))
+
+(defn parse-isodatetime [s]
+  (let [[year month date] ((juxt #(.getYear %)
+                                 #(.getMonth %)
+                                 #(.getDate %))
+                           (DateTime/fromIsoString s))]
+       (Date. year month date)))
 
 (defn serialize-exercises [exercises]
   (->> (mapv (fn [ex]
@@ -49,13 +62,6 @@
              exercises)
        clj->js
        (#(js/JSON.stringify %))))
-
-(defn parse-isodatetime [s]
-  (let [[year month date] ((juxt #(.getYear %)
-                                 #(.getMonth %)
-                                 #(.getDate %))
-                           (DateTime/fromIsoString s))]
-       (Date. year month date)))
 
 (defn deserialize-exercises [s]
   (->> (js/JSON.parse s)
@@ -142,12 +148,6 @@
 (defn correct-mouse-position [mouse offset]
   {:x (- (:x mouse) (:x offset))
    :y (- (:y mouse) (:y offset))})
-
-(defn date>= [date1 date2]
-  (>= (Date/compare date1 date2) 0))
-
-(defn date<= [date1 date2]
-  (<= (Date/compare date1 date2) 0))
 
 (defn exercises-for-week [monday exercises]
   {:pre [(seq? exercises)]
