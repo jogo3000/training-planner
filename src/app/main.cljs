@@ -32,7 +32,6 @@
 (defn inc-week [date]
   (adjust-days date 7))
 
-
 (defn adjust-hours [datetime hours]
   (let [new (.clone datetime)]
     (->> (Interval. Interval/HOURS hours)
@@ -332,7 +331,6 @@ CALSCALE:GREGORIAN"
              :download "harjoitukset.ics"}
          "Lataa viikon harjoitukset"]]])) )
 
-
 (defn read-key [evt]
   (.-key evt))
 
@@ -343,7 +341,6 @@ CALSCALE:GREGORIAN"
   (update db :keys-down disj (read-key evt)))
 
 (defn ^:export ^:dev/after-load main! []
-
   (js/document.addEventListener "keydown" #(emit :on-key-down %))
   (js/document.addEventListener "keyup" #(emit :on-key-up %))
 
