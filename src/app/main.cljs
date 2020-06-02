@@ -85,7 +85,6 @@
   (let [stored-exercises (load-exercises)
         ratom (r/atom {:start-date (date->last-monday (Date.))
                        :editor ""
-                       :keys-down #{}
                        :drag {:dragging? false}
                        :selected-element nil
                        :exercises stored-exercises})]
@@ -121,14 +120,15 @@
                  (update :z dec))]
     (assoc exercises new-id copy)))
 
-(defn maybe-copy-exercise [db id]
-  (if ((:keys-down db) "Control")
+(defn maybe-copy-exercise [db ctrl-down? id]
+  (if ctrl-down?
     (update db :exercises (partial copy-exercise id))
     db))
 
 (defmethod handle :start-drag [_ db evt {:keys [id x y description]}]
-  (let [mouse-position (mouse-position evt)]
-    (-> (maybe-copy-exercise db id)
+  (let [mouse-position (mouse-position evt)
+        ctrl-down? (.-ctrlKey evt)]
+    (-> (maybe-copy-exercise db ctrl-down? id)
         (assoc-in [:drag :dragging?] true)
         (assoc :selected-element id)
         (assoc :editor description)
@@ -334,16 +334,7 @@ CALSCALE:GREGORIAN"
 (defn read-key [evt]
   (.-key evt))
 
-(defmethod handle :on-key-down [_ db evt]
-  (update db :keys-down conj (read-key evt)))
-
-(defmethod handle :on-key-up [_ db evt]
-  (update db :keys-down disj (read-key evt)))
-
 (defn ^:export ^:dev/after-load main! []
-  (js/document.addEventListener "keydown" #(emit :on-key-down %))
-  (js/document.addEventListener "keyup" #(emit :on-key-up %))
-
   (rdom/render
    [root]
    (js/document.getElementById "app")))
