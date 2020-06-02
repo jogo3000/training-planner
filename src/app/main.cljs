@@ -104,7 +104,7 @@
          :editor ""))
 
 (defn mouse-position [evt]
-  (let [ctm (.getScreenCTM (js/document.getElementById canvas-id))
+  (let [ctm (.getScreenCTM (.-target evt))
         ctm-a (.-a ctm)
         ctm-e (.-e ctm)
         ctm-d (.-d ctm)
