@@ -149,8 +149,6 @@
    :y (- (:y mouse) (:y offset))})
 
 (defn exercises-for-week [monday exercises]
-  {:pre [(seq? exercises)]
-   :post [(seq? %)]}
   (let [sunday (adjust-days monday 6)]
     (filter (fn [{start-time :start-time}]
               (or (not start-time)
@@ -181,6 +179,10 @@
                 #(dissoc % selected))
         (assoc :selected-element nil
                :editor ""))))
+
+(defmethod handle :delete-weeks-exercises [_ db exercises]
+  (reduce (fn [db {id :id}]
+            (update db :exercises #(dissoc % id))) db exercises))
 
 (defmethod handle :previous-week [_ db]
   (update db :start-date dec-week))
@@ -300,6 +302,7 @@ CALSCALE:GREGORIAN"
           monday (date->last-monday start-date)
           selected-exercise (:selected-element @db)
           exercises (->> (:exercises @db)
+                         vals
                          (exercises-for-week monday))
           editor (:editor @db)]
       [:<>
@@ -326,6 +329,9 @@ CALSCALE:GREGORIAN"
         [:button {:class "primary-button"
                   :on-click #(emit :delete-exercise)}
          "Poista harjoitus"]
+        [:button {:class "primary-button"
+                  :on-click #(emit :delete-weeks-exercises exercises)}
+         "Poista viikon harjoitukset"]
         ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
         [:p (with-out-str (cljs.pprint/pprint @db))]
         [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical exercises)))
