@@ -299,7 +299,8 @@ CALSCALE:GREGORIAN"
     (let [start-date (:start-date @db)
           monday (date->last-monday start-date)
           selected-exercise (:selected-element @db)
-          exercises (vals (:exercises @db))
+          exercises (->> (:exercises @db)
+                         (exercises-for-week monday))
           editor (:editor @db)]
       [:<>
        [:link {:rel "stylesheet" :href "/css/main.css"}]
@@ -314,7 +315,7 @@ CALSCALE:GREGORIAN"
                    :on-mouse-move #(emit :mousemove %)
                    :on-mouse-up #(emit :stop-drag)}]
             (into (render-week-grid monday))
-            (into (render-exercises (exercises-for-week monday exercises) selected-exercise)))
+            (into (render-exercises exercises selected-exercise)))
         [:textarea {:rows 10
                     :cols 80
                     :value editor
