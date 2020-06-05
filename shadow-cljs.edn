@@ -5,4 +5,8 @@
                 :devtools {:autoload true}
                 :output-dir "public/js"
                 :asset-path "."
-                :modules {:main {:init-fn app.main/main!}}}}}
+                :modules {:main {:init-fn app.main/main!}}}
+          :test {:target :browser-test
+                 :test-dir "public/js/test"
+                 :devtools {:http-port 3021
+                            :http-root "public/js/test"}}}}
