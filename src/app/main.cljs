@@ -38,6 +38,9 @@
          (.add new))
     new))
 
+(defn date= [date1 date2]
+  (= (Date/compare date1 date2) 0))
+
 (defn date>= [date1 date2]
   (>= (Date/compare date1 date2) 0))
 
@@ -55,10 +58,10 @@
        (Date. year month date)))
 
 (defn serialize-exercises [exercises]
-  (->> (mapv (fn [ex]
+  (->> (vals exercises)
+       (mapv (fn [ex]
                (-> (update ex :id #(.toString %))
-                   (update :start-time serialize-start-time)))
-             exercises)
+                   (update :start-time serialize-start-time))))
        clj->js
        (#(js/JSON.stringify %))))
 
@@ -73,7 +76,6 @@
 
 (defn persist-exercises [_ _ _ new-state]
   (->> (:exercises new-state)
-       vals
        serialize-exercises
        (.setItem js/window.localStorage local-storage-key)))
 
