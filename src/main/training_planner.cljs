@@ -156,6 +156,29 @@
     (cond-> (assoc db :editor new-value)
       selected-element (update-in [:exercises selected-element] #(assoc % :description new-value)))))
 
+(defn interpret-decimal [n c]
+  (+ (* 10 n)
+     (js/parseInt c)))
+
+(defn interpret-unit [{id :unit-identifier :as state} c]
+  (let [unit (str id c)]
+    (assoc state
+           :unit-identifier unit
+           :unit-type :length
+           :multiplier ({"km" 1000
+                         "m" 1} unit))))
+
+(defn finalize-segment [{s :current-segment
+                         {:keys [multiplier]} :current-unit :as state}]
+  (update state :volume + (* multiplier s)))
+
+(defn parse-exercise [s]
+  (->> (reduce (fn [state c]
+                 (cond-> state
+                   (#{"0" "1" "2" "3" "4" "5" "6" "7" "8" "9"} c) (update :current-segment interpret-decimal c)
+                   (#{"k" "m"} c) (update :current-unit interpret-unit c))) {:volume 0} s)
+       finalize-segment))
+
 (defmethod handle :create-exercise [_ db]
   (let [id (random-uuid)]
     (-> (assoc-in db [:exercises id]
