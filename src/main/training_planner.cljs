@@ -298,6 +298,38 @@ CALSCALE:GREGORIAN"
                         ex-before-sunday (date<= start-date sunday)]
                     (and ex-after-monday ex-before-sunday)))) exercises)))
 
+(defn main-page [monday selected-exercise exercises editor]
+  [:<>
+   [:link {:rel "stylesheet" :href "/css/main.css"}]
+   [:div {:class "flex-down"}
+    [:div {:class "flex-right"}
+     [:button {:class "primary-button"
+               :on-click #(emit :previous-week)}"Edellinen viikko"]
+     [:button {:class "primary-button"
+               :on-click #(emit :next-week)} "Seuraava viikko"]]
+    (-> [:svg {:id canvas-id
+               :width canvas-width :height canvas-height
+               :on-mouse-move #(emit :mousemove %)
+               :on-mouse-up #(emit :stop-drag)}]
+        (into (render-week-grid monday))
+        (into (render-exercises exercises selected-exercise)))
+    [:textarea {:rows 10
+                :cols 80
+                :value editor
+                :on-change #(emit :update-editor %)}]
+    [:button {:class "primary-button"
+              :on-click #(emit :create-exercise)}
+     "Luo harjoitus"]
+    [:button {:class "primary-button"
+              :on-click #(emit :delete-exercise)}
+     "Poista harjoitus"]
+    [:button {:class "primary-button"
+              :on-click #(emit :delete-weeks-exercises exercises)}
+     "Poista viikon harjoitukset"]
+    [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical exercises)))
+         :download "harjoitukset.ics"}
+     "Lataa viikon harjoitukset"]]])
+
 (defn root []
   (fn []
     (let [start-date (:start-date @db)
@@ -308,37 +340,9 @@ CALSCALE:GREGORIAN"
                          (exercises-for-week monday))
           editor (:editor @db)]
       [:<>
-       [:link {:rel "stylesheet" :href "/css/main.css"}]
-       [:div {:class "flex-down"}
-        [:div {:class "flex-right"}
-         [:button {:class "primary-button"
-                   :on-click #(emit :previous-week)}"Edellinen viikko"]
-         [:button {:class "primary-button"
-                   :on-click #(emit :next-week)} "Seuraava viikko"]]
-        (-> [:svg {:id canvas-id
-                   :width canvas-width :height canvas-height
-                   :on-mouse-move #(emit :mousemove %)
-                   :on-mouse-up #(emit :stop-drag)}]
-            (into (render-week-grid monday))
-            (into (render-exercises exercises selected-exercise)))
-        [:textarea {:rows 10
-                    :cols 80
-                    :value editor
-                    :on-change #(emit :update-editor %)}]
-        [:button {:class "primary-button"
-                  :on-click #(emit :create-exercise)}
-         "Luo harjoitus"]
-        [:button {:class "primary-button"
-                  :on-click #(emit :delete-exercise)}
-         "Poista harjoitus"]
-        [:button {:class "primary-button"
-                  :on-click #(emit :delete-weeks-exercises exercises)}
-         "Poista viikon harjoitukset"]
+       [main-page monday selected-exercise exercises editor]
         ;; FIXME: pois debugit. Voisko tähän saada aidon debuggerin kiinni?
-        [:p (with-out-str (cljs.pprint/pprint @db))]
-        [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical exercises)))
-             :download "harjoitukset.ics"}
-         "Lataa viikon harjoitukset"]]])) )
+        [:p (with-out-str (cljs.pprint/pprint @db))]])) )
 
 (defn read-key [evt]
   (.-key evt))
