@@ -150,15 +150,6 @@
   {:x (- (:x mouse) (:x offset))
    :y (- (:y mouse) (:y offset))})
 
-(defn exercises-for-week [monday exercises]
-  (let [sunday (adjust-days monday 6)]
-    (filter (fn [{start-time :start-time}]
-              (or (not start-time)
-                  (let [start-date (Date. (.getYear start-time) (.getMonth start-time) (.getDate start-time))
-                        ex-after-monday (date>= start-date monday)
-                        ex-before-sunday (date<= start-date sunday)]
-                    (and ex-after-monday ex-before-sunday)))) exercises)))
-
 (defmethod handle :update-editor [_ db evt]
   (let [new-value (-> evt .-target .-value)
         selected-element (:selected-element db)]
@@ -297,6 +288,15 @@ CALSCALE:GREGORIAN"
    :post [(seq? %)]}
   (let [in-drawing-order (sort :z exercises)]
     (map (partial render-exercise selected-exercise) in-drawing-order)))
+
+(defn exercises-for-week [monday exercises]
+  (let [sunday (adjust-days monday 6)]
+    (filter (fn [{start-time :start-time}]
+              (or (not start-time)
+                  (let [start-date (Date. (.getYear start-time) (.getMonth start-time) (.getDate start-time))
+                        ex-after-monday (date>= start-date monday)
+                        ex-before-sunday (date<= start-date sunday)]
+                    (and ex-after-monday ex-before-sunday)))) exercises)))
 
 (defn root []
   (fn []
