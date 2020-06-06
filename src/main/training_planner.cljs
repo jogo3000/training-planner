@@ -1,4 +1,4 @@
-(ns app.main
+(ns training-planner
   (:require
    [clojure.string :as str]
    [reagent.core :as r]

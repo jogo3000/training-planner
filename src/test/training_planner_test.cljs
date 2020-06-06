@@ -1,8 +1,10 @@
-(ns test.main-test
-  (:require [app.main :as sut]
-            [cljs.test :refer [deftest is testing] :as t :include-macros true])
+(ns training-planner-test
+  (:require [training-planner :as sut]
+            [cljs.test :refer [deftest is testing run-tests] :as t :include-macros true])
   (:import [goog.date Date]))
 
+(comment
+  (run-tests))
 
 (deftest exercise-serialization
   (letfn [(round-trip [x]
@@ -49,4 +51,18 @@
         (is (= {:id new-exercise-id
                 :x 0 :y 0 :z 0 :description "PK 10 km"}
                exercise))
-        (is (= new-exercise-id (:selected-element db)))))))
+        (is (= new-exercise-id (:selected-element db))))))
+
+  (testing "Starting to drag an exercise selects it and stores the offset"
+    (with-redefs [sut/mouse-position (constantly {:x 100 :y 24})]
+      (let [id (random-uuid)
+            description "2 x 10' / 5'"
+            db {:selected-element nil
+                :editor ""
+                :exercises {id {:id id :x 80 :y 20 :z 0 :description description}}}
+
+            modified-db (sut/handle :start-drag db #js {} {:id id :x 80 :y 20 :description description})]
+        (is (= description (:editor modified-db)))
+        (is (= id (:selected-element modified-db)))
+        (is (true? (get-in modified-db [:drag :dragging?])))
+        (is (= {:x 20 :y 4} (get-in modified-db [:drag :offset])))))))
