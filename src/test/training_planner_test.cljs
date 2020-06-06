@@ -66,10 +66,3 @@
         (is (= id (:selected-element modified-db)))
         (is (true? (get-in modified-db [:drag :dragging?])))
         (is (= {:x 20 :y 4} (get-in modified-db [:drag :offset])))))))
-
-(deftest exercise-text-parsing
-  (letfn [(read-volume [s]
-            (->> (sut/parse-exercise s) :volume))]
-    (testing "10 km"
-      (is (= 10000 (read-volume "10 km")))
-      (is (= 10000 (read-volume "10 000 m") )))))
