@@ -93,6 +93,17 @@
     (add-watch ratom :persistence-watcher persist-exercises)
     ratom))
 
+(defn exercises-for-week
+  "Returns exercises for the week starging on `monday`"
+  [monday exercises]
+  (let [sunday (adjust-days monday 6)]
+    (filter (fn [{start-time :start-time}]
+              (or (not start-time)
+                  (let [start-date (Date. (.getYear start-time) (.getMonth start-time) (.getDate start-time))
+                        ex-after-monday (date>= start-date monday)
+                        ex-before-sunday (date<= start-date sunday)]
+                    (and ex-after-monday ex-before-sunday)))) exercises)))
+
 (defmulti handle (fn [event _ & _] event))
 
 (defmethod handle :default [_ db & _] db)
@@ -199,6 +210,12 @@
 (defmethod handle :delete-weeks-exercises [_ db exercises]
   (reduce (fn [db {id :id}]
             (update db :exercises #(dissoc % id))) db exercises))
+
+(defmethod handle :copy-exercise-week [_ db monday]
+  (->> (exercises-for-week monday (vals (:exercises db)))
+       (map #(assoc % :id (random-uuid)))
+       (map #(update % :start-time inc-week))
+       (reduce #(assoc-in %1 [:exercises (:id %2)] %2) db)))
 
 (defmethod handle :previous-week [_ db]
   (update db :start-date dec-week))
@@ -312,15 +329,6 @@ CALSCALE:GREGORIAN"
   (let [in-drawing-order (sort :z exercises)]
     (map (partial render-exercise selected-exercise) in-drawing-order)))
 
-(defn exercises-for-week [monday exercises]
-  (let [sunday (adjust-days monday 6)]
-    (filter (fn [{start-time :start-time}]
-              (or (not start-time)
-                  (let [start-date (Date. (.getYear start-time) (.getMonth start-time) (.getDate start-time))
-                        ex-after-monday (date>= start-date monday)
-                        ex-before-sunday (date<= start-date sunday)]
-                    (and ex-after-monday ex-before-sunday)))) exercises)))
-
 (defn main-page [monday selected-exercise exercises editor]
   [:<>
    [:link {:rel "stylesheet" :href "/css/main.css"}]
@@ -349,6 +357,9 @@ CALSCALE:GREGORIAN"
     [:button {:class "primary-button"
               :on-click #(emit :delete-weeks-exercises exercises)}
      "Poista viikon harjoitukset"]
+    [:button {:class "primary-button"
+              :on-click #(emit :copy-exercise-week monday)}
+     "Kopioi viikon harjoitukset"]
     [:a {:href (str "data:text/plain;charset=utf-8," (js/encodeURIComponent (to-ical exercises)))
          :download "harjoitukset.ics"}
      "Lataa viikon harjoitukset"]]])

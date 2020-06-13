@@ -1,7 +1,7 @@
 (ns training-planner-test
   (:require [training-planner :as sut]
             [cljs.test :refer [deftest is testing run-tests] :as t :include-macros true])
-  (:import [goog.date Date]))
+  (:import [goog.date Date DateTime]))
 
 (comment
   (run-tests))
@@ -73,3 +73,33 @@
     (testing "10 km"
       (is (= 10000 (read-volume "10 km")))
       (is (= 10000 (read-volume "10 000 m") )))))
+
+(deftest copying-exercise-week
+  (testing "Copy exercises to next week copies this week's exercises to the next week"
+    (letfn [(->exercise [desc start-time]
+              {:id (random-uuid) :description desc :start-time start-time})
+            (ex->comparable [ex]
+              (-> (update ex :start-time #(.toIsoString %))
+                  (select-keys [:start-time :description])))]
+      (let [monday (Date. 2020  5 8)
+            thursday-evening (DateTime. 2020 5 11 16 0)
+            saturday-morning (DateTime. 2020 5 13 6 0)
+            last-sunday-morning (DateTime. 2020 5 7 6 0)
+            next-saturday-morning (DateTime. 2020 5 20 6 0)
+            next-thursday-evening (DateTime. 2020 5 18 16 0)
+            db {:exercises (into {} (map (juxt :id identity)) [(->exercise "pk 10km" saturday-morning)
+                                                               (->exercise "vk 8 km" thursday-evening)
+                                                               (->exercise "last-week" last-sunday-morning)])
+                :start-date (Date. 2020 5 8)}
+
+            modified-db (sut/handle :copy-exercise-week db monday)
+            exercises (->> (:exercises modified-db)
+                           vals
+                           (map ex->comparable)
+                           set)]
+        (is (= 5 (count (:exercises modified-db))))
+        (is (exercises (ex->comparable {:description "pk 10km" :start-time saturday-morning})))
+        (is (exercises (ex->comparable {:description "vk 8 km" :start-time thursday-evening})))
+        (is (exercises (ex->comparable {:description "last-week" :start-time last-sunday-morning})))
+        (is (exercises (ex->comparable {:description "pk 10km" :start-time next-saturday-morning})) exercises)
+        (is (exercises (ex->comparable {:description "vk 8 km" :start-time next-thursday-evening})))))))
