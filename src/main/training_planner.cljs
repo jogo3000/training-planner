@@ -311,7 +311,7 @@ CALSCALE:GREGORIAN"
          :on-mouse-down #(emit :start-drag % exercise)
          :on-mouse-up #(emit :stop-drag)}
      [:rect (merge {:width 250
-                    :height 50
+                    :height 100
                     :x x :y y
                     :fill "green"}
                    (when (= selected-exercise id)
