@@ -24,3 +24,9 @@ Ainakin se tulisi rivittää oikein
 - jos se ei arvaa oikein, voisi pituuden syöttää käsin
 ** TODO Kuukausiyhteenveto
 ** TODO Kausiyhteenveto
+** TODO Vähemmän tilaa vievä harjoituseditori
+Nyt harjoituseditori vie aika paljon tilaa ruudulla. Sitä voi
+pienentää esimerkiksi
+- pienentämällä inputtia
+- tekemällä tekstin editoinnin suoraan harjoituksen päälle
+- pitäisikö harjoituksen editointi olla modaalissa?
