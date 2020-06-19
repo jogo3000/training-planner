@@ -8,7 +8,7 @@
             (->> (parse-exercise s) :volume))]
     (testing "Parsing simple length measures"
       (is (= 10000 (read-volume "10 km")))
-      (is (= 10000 (read-volume "10 000 m") )))
+      (is (= 10000 (read-volume "10000 m") )))
 
     (testing "Parsing length measures with decimal units"
       (is (= 5880 (read-volume "5,88 km"))))))
