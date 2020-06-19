@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as str]
    [reagent.core :as r]
-   [reagent.dom :as rdom])
+   [reagent.dom :as rdom]
+   [exercise-parser :refer [combine-segments parse-exercise]])
   (:import [goog.date Date DateTime Interval]))
 
 (def local-storage-key "training-planner-exercises")
@@ -298,6 +299,15 @@ CALSCALE:GREGORIAN"
                         ex-before-sunday (date<= start-date sunday)]
                     (and ex-after-monday ex-before-sunday)))) exercises)))
 
+(defn render-totals [exercises]
+  (let [volume (->> (map :description exercises)
+                    (map str/lower-case)
+                    (mapcat parse-exercise)
+                    (combine-segments)
+                    :volume)]
+    [[:g
+      [:text {:x (+ (* day-width 7) 10) :y 80 :fill "black"} (str "Yhteensä: " (/ volume 1000) " km")]]]))
+
 (defn main-page [monday selected-exercise exercises editor]
   [:<>
    [:link {:rel "stylesheet" :href "/css/main.css"}]
@@ -312,7 +322,8 @@ CALSCALE:GREGORIAN"
                :on-mouse-move #(emit :mousemove %)
                :on-mouse-up #(emit :stop-drag)}]
         (into (render-week-grid monday))
-        (into (render-exercises exercises selected-exercise)))
+        (into (render-exercises exercises selected-exercise))
+        (into (render-totals exercises)))
     [:textarea {:rows 10
                 :cols 80
                 :value editor

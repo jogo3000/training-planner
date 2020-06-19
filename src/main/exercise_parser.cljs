@@ -51,7 +51,7 @@ SPACE = ' ';
                   (* (js/parseInt multiplier)))}))
 
 (defn parse-exercise [s]
-  (let [ast (parser s)
+  (let [ast (insta/parses parser s :partial true)
 
         volume
         (postwalk
