@@ -310,7 +310,9 @@ CALSCALE:GREGORIAN"
 (defn render-totals [exercises]
   (let [volume (->> (map :description exercises)
                     (map str/lower-case)
-                    (mapcat parse-exercise)
+                    (map #(str/split-lines %))
+                    (map first)
+                    (map parse-exercise)
                     (combine-segments)
                     :volume)]
     [[:g
