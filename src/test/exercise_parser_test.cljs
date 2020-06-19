@@ -11,7 +11,16 @@
       (is (= 10000 (read-volume "10000 m") )))
 
     (testing "Parsing length measures with decimal units"
-      (is (= 5880 (read-volume "5,88 km"))))))
+      (is (= 5880 (read-volume "5,88 km"))))
+
+    (testing "Interval exercises"
+      (is (= 8000 (read-volume "vr 2 km + 4 x 1000 m / 1' + vr 2 km"))))
+
+    (testing "nested repetitions"
+      (is (= 10000 (read-volume "2x5x1000m"))))
+
+    (testing "distance based rests"
+      (is (= 6000 (read-volume "5x1000m/200m"))))))
 
 (deftest valid-exercises
   (letfn [(valid? [s]

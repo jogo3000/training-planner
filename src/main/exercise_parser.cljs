@@ -8,8 +8,10 @@
 (def parser
   (insta/parser
    "
-S = SEGMENT [<SPACE*> <#'\\+|,'> <SPACE*> SEGMENT]*
-SEGMENT = [QUALIFIER <SPACE+>] [MULTIPLIER] ( DISTANCE | TIME ) [ REST ];
+S = SEGMENT [<SPACE*> <#'\\+|,'> <SPACE*> SEGMENT ]*
+<SEGMENT> = REPEATED-SEGMENT | SINGLE-SEGMENT;
+REPEATED-SEGMENT = MULTIPLIER SEGMENT | MULTIPLIER <'('> <SPACE*> [ SEGMENT ]+ <')'>;
+SINGLE-SEGMENT = [<QUALIFIER> <SPACE+>] ( DISTANCE | TIME ) [ REST ];
 MULTIPLIER = NUMBER <SPACE*> <#'x'> <SPACE*>;
 QUALIFIER = 'vk' | 'pk' | 'mk' | 'n' | 'vr';
 REST = [ <SPACE*> ] <'/'> [ <SPACE*> ] ( DISTANCE | TIME );
@@ -37,6 +39,17 @@ SPACE = ' ';
          :METER 1
          (throw (js/Error. (str "Not supported distance unit: " unit)))))))
 
+(defn combine-segments [segments]
+  (reduce (fn [all segment]
+            {:volume (+ (:volume all) (:volume segment))})
+          segments))
+
+(defn repeated-segment [node]
+  (let [[[_ [_ multiplier]] & segments] (rest node)]
+    {:volume (->> (combine-segments segments)
+                  :volume
+                  (* (js/parseInt multiplier)))}))
+
 (defn parse-exercise [s]
   (let [ast (parser s)
 
@@ -46,8 +59,12 @@ SPACE = ' ';
            (if (vector? node)
              (case (first node)
                :DISTANCE {:volume (interpret-distance node)}
-               :SEGMENT (second node)
-               :S (second node)
+               :REPEATED-SEGMENT (repeated-segment node)
+               :SINGLE-SEGMENT (combine-segments (rest node))
+               :REST (second node)
+               :S (reduce (fn [all segment]
+                            {:volume (+ (:volume all) (:volume segment))})
+                          (rest node))
                node)
              node))
          ast)]
