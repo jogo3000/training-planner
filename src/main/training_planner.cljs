@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as str]
    [reagent.core :as r]
-   [reagent.dom :as rdom])
+   [reagent.dom :as rdom]
+   [exercise-parser :refer [combine-segments parse-exercise]])
   (:import [goog.date Date DateTime Interval]))
 
 (def local-storage-key "training-planner-exercises")
@@ -167,29 +168,6 @@
     (cond-> (assoc db :editor new-value)
       selected-element (update-in [:exercises selected-element] #(assoc % :description new-value)))))
 
-(defn interpret-decimal [n c]
-  (+ (* 10 n)
-     (js/parseInt c)))
-
-(defn interpret-unit [{id :unit-identifier :as state} c]
-  (let [unit (str id c)]
-    (assoc state
-           :unit-identifier unit
-           :unit-type :length
-           :multiplier ({"km" 1000
-                         "m" 1} unit))))
-
-(defn finalize-segment [{s :current-segment
-                         {:keys [multiplier]} :current-unit :as state}]
-  (update state :volume + (* multiplier s)))
-
-(defn parse-exercise [s]
-  (->> (reduce (fn [state c]
-                 (cond-> state
-                   (#{"0" "1" "2" "3" "4" "5" "6" "7" "8" "9"} c) (update :current-segment interpret-decimal c)
-                   (#{"k" "m"} c) (update :current-unit interpret-unit c))) {:volume 0} s)
-       finalize-segment))
-
 (defmethod handle :create-exercise [_ db]
   (let [id (random-uuid)]
     (-> (assoc-in db [:exercises id]
@@ -329,6 +307,15 @@ CALSCALE:GREGORIAN"
   (let [in-drawing-order (sort :z exercises)]
     (map (partial render-exercise selected-exercise) in-drawing-order)))
 
+(defn render-totals [exercises]
+  (let [volume (->> (map :description exercises)
+                    (map str/lower-case)
+                    (mapcat parse-exercise)
+                    (combine-segments)
+                    :volume)]
+    [[:g
+      [:text {:x (+ (* day-width 7) 10) :y 80 :fill "black"} (str "Yhteensä: " (/ volume 1000) " km")]]]))
+
 (defn main-page [monday selected-exercise exercises editor]
   [:<>
    [:link {:rel "stylesheet" :href "/css/main.css"}]
@@ -343,7 +330,8 @@ CALSCALE:GREGORIAN"
                :on-mouse-move #(emit :mousemove %)
                :on-mouse-up #(emit :stop-drag)}]
         (into (render-week-grid monday))
-        (into (render-exercises exercises selected-exercise)))
+        (into (render-exercises exercises selected-exercise))
+        (into (render-totals exercises)))
     [:textarea {:rows 10
                 :cols 80
                 :value editor
