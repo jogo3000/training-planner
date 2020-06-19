@@ -7,7 +7,12 @@
 ;;; use defparser maybe?
 (def parser
   (insta/parser
-   "S = DISTANCE | TIME;
+   "
+S = SEGMENT [<SPACE*> <#'\\+|,'> <SPACE*> SEGMENT]*
+SEGMENT = [QUALIFIER <SPACE+>] [MULTIPLIER] ( DISTANCE | TIME ) [ REST ];
+MULTIPLIER = NUMBER <SPACE*> <#'x'> <SPACE*>;
+QUALIFIER = 'vk' | 'pk' | 'mk' | 'n' | 'vr';
+REST = [ <SPACE*> ] <'/'> [ <SPACE*> ] ( DISTANCE | TIME );
 DISTANCE = NUMBER <SPACE*> LENGHT-UNIT;
 LENGHT-UNIT = KILOMETER | METER
 TIME = NUMBER <SPACE*> HOUR [<SPACE*> NUMBER <SPACE*> MINUTE ] [<SPACE*> NUMBER <SPACE*> SECOND ] | NUMBER <SPACE*> MINUTE [<SPACE*> NUMBER <SPACE*> [SECOND]] | NUMBER <SPACE*> SECOND;
@@ -40,8 +45,10 @@ SPACE = ' ';
          (fn [node]
            (if (vector? node)
              (case (first node)
-               :DISTANCE (interpret-distance node)
+               :DISTANCE {:volume (interpret-distance node)}
+               :SEGMENT (second node)
+               :S (second node)
                node)
              node))
          ast)]
-    {:volume (second volume)}))
+    volume))
