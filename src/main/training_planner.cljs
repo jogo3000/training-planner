@@ -313,10 +313,13 @@ CALSCALE:GREGORIAN"
                     (map #(str/split-lines %))
                     (map first)
                     (map parse-exercise)
-                    (combine-segments)
-                    :volume)]
+                    (combine-segments))]
     [[:g
-      [:text {:x (+ (* day-width 7) 10) :y 80 :fill "black"} (str "Yhteensä: " (/ volume 1000) " km")]]]))
+      [:text {:x (+ (* day-width 7) 10) :y 80 :fill "black"} (str "Yhteensä: "
+                                                                  (/ (:min-volume volume) 1000)
+                                                                  " - "
+                                                                  (/ (:max-volume volume) 1000)
+                                                                  " km")]]]))
 
 (defn main-page [monday selected-exercise exercises editor]
   [:<>
