@@ -12,20 +12,17 @@
 (def canvas-height 400)
 (def day-width (/ canvas-width 8))
 
-(defn date->last-monday [date]
-  (let [day (.getDate date)
-        weekday (.getIsoWeekday date)
-        year (.getYear date)
-        month (.getMonth date)]
-    (if (zero? weekday)
-      date
-      (Date. year month (- day weekday)))))
-
 (defn adjust-days [date days]
   (let [new-date (.clone date)]
     (->> (Interval. Interval/DAYS days)
          (.add new-date))
     new-date))
+
+(defn date->last-monday [date]
+  (let [weekday (.getIsoWeekday date)]
+    (if (zero? weekday)
+      date
+      (adjust-days date (- 0 weekday)))))
 
 (defn dec-week [date]
   (adjust-days date -7))
